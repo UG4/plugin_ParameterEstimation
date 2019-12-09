@@ -1,11 +1,10 @@
 import subprocess
-import numpy as np
 import os
 import io
 import time
 import csv
 from shutil import copyfile
-from UGParameterEstimator import *
+from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter
 from .evaluator import Evaluator
 
 class ClusterEvaluator(Evaluator):
@@ -33,7 +32,7 @@ class ClusterEvaluator(Evaluator):
     def parallelism(self):
         return self.jobcount
 
-    def evaluate(self, evaluationlist, evaluation_type, transform=True, tag=""):
+    def evaluate(self, evaluationlist, transform=True, tag=""):
         
         results = [None] * len(evaluationlist)
         self.jobids = []

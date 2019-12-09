@@ -40,8 +40,8 @@ class App(QApplication):
         toolbar.addAction(action)
         self.main_window.addToolBar(toolbar)
 
-        self.main_window.addToolBar(Qt.BottomToolBarArea,
-                        NavigationToolbar(self.canvas, self.main_window))
+        # self.main_window.addToolBar(Qt.BottomToolBarArea,
+                        # NavigationToolbar(self.canvas, self.main_window))
 
         # add a status bar to the main window
         self.status_openfile = QLabel("No file open.")

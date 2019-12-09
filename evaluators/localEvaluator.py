@@ -2,7 +2,7 @@ import subprocess
 import numpy as np
 import os
 import time
-from UGParameterEstimator import *
+from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter
 from .evaluator import Evaluator
 
 class LocalEvaluator(Evaluator):
