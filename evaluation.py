@@ -1,7 +1,5 @@
 import numpy as np
 import os
-import csv
-import math
 from abc import ABC, abstractmethod
 
 class Evaluation(ABC):

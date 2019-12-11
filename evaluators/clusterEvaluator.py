@@ -4,7 +4,7 @@ import io
 import time
 import csv
 from shutil import copyfile
-from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter
+from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter, ErroredEvaluation
 from .evaluator import Evaluator
 
 class ClusterEvaluator(Evaluator):

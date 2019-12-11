@@ -2,6 +2,7 @@ from .evaluation import Evaluation, ErroredEvaluation
 import numpy as np
 import math
 import os
+import csv
 
 class FreeSurfaceEvaluation(Evaluation):
 

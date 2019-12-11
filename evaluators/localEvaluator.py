@@ -2,7 +2,7 @@ import subprocess
 import numpy as np
 import os
 import time
-from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter
+from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter, ErroredEvaluation
 from .evaluator import Evaluator
 
 class LocalEvaluator(Evaluator):
@@ -43,7 +43,7 @@ class LocalEvaluator(Evaluator):
             else:
                 parameters = beta
                 if np.min(parameters) < 0:
-                    results.append(None)
+                    results.append(ErroredEvaluation(parameters, reason="Infeasible parameters"))
                     continue 
                 
             starttime = time.time()
@@ -64,7 +64,7 @@ class LocalEvaluator(Evaluator):
             self.id += 1
         
             if data is None:
-                results.append(None)
+                results.append(ErroredEvaluation(parameters, reason="Error while parsing."))
                 continue
 
             self.totalevaluationtime += time.time()-starttime
