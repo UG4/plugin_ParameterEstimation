@@ -57,7 +57,7 @@ class FreeSurfaceEquilibriumEvaluation(FreeSurfaceEvaluation):
         self.data = data
         self.locations = locations
         self.dimension = dimension
-        self.times[0] = time
+        self.times = [time]
         
     @classmethod
     def fromCSV(cls, filename, dim):
