@@ -35,9 +35,8 @@ class ClusterEvaluator(Evaluator):
     def evaluate(self, evaluationlist, transform=True, tag=""):
         
         results = [None] * len(evaluationlist)
-        self.jobids = []
-        evaluationids = []
-
+        self.jobids = [None] * len(evaluationlist)
+        evaluationids = [None] * len(evaluationlist)
         beta = [None] * len(evaluationlist)
         starttimes =  [None] * len(evaluationlist)
 
@@ -67,7 +66,7 @@ class ClusterEvaluator(Evaluator):
 
             callParameters = ["ugsubmit",str(self.jobcount),"---","ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
 
-            evaluationids.append(self.id)
+            evaluationids[j] = self.id
 
             # output the parameters however needed for the application
             self.parameter_output_adapter.writeParameters(self.directory, self.id, self.parametermanager, beta[j], self.fixedparameters)
@@ -80,7 +79,7 @@ class ClusterEvaluator(Evaluator):
 
             for line in io.TextIOWrapper(process.stdout, encoding="UTF-8"):
                 if(line.startswith("Received job id")):
-                    self.jobids.append(int(line.split(" ")[3]))
+                    self.jobids[j] = int(line.split(" ")[3])
 
             # to avoid bugs with the used scheduler on cesari
             time.sleep(1)
