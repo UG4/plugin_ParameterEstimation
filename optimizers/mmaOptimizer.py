@@ -13,7 +13,7 @@ class MMAOptimizer(Optimizer):
         
     def run(self, evaluator, initial_parameters, target, result = Result()):
 
-        self.evaluator.resultobj = result    
+        evaluator.resultobj = result    
 
         result.addRunMetadata("target", target)
         result.addRunMetadata("fixedparameters", self.evaluator.fixedparameters)

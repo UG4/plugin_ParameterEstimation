@@ -47,14 +47,17 @@ class ClusterEvaluator(Evaluator):
 
             if transform:
                 beta[j] = self.parametermanager.getTransformedParameters(beta_j)
+                if beta[j] is None:
+                    results[j] = ErroredEvaluation(beta[j], reason="Infeasible parameters")
             else:
-                beta[j] = beta_j
-                
+                beta[j] = beta_j    
+
+            if results[j] is None:
+                results[j] = self.checkCache(beta[j])
 
         for j in range(len(evaluationlist)):
 
-            if beta[j] is None:
-                results[j] = ErroredEvaluation(beta[j], reason="Infeasible parameters")
+            if results[j] is not None:                
                 continue
 
             starttimes[j] = time.time()
@@ -114,8 +117,6 @@ class ClusterEvaluator(Evaluator):
 
         # now we can parse the measurement files
         for i in range(len(evaluationlist)):
-
-            self.evaluation_count += 1
 
             if results[i] is not None:
                 continue

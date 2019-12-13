@@ -23,12 +23,12 @@ class LineSearch(ABC):
 
 class LinearParallelLineSearch(LineSearch):
 
-    c = 1e-4                    # c for the wolfe lower bound  
+    c = 1e-3                    # c for the wolfe lower bound  
     gamma = 0.5                 # the factor to shrink the observation window in each iteration
     max_iterations = 1         # number of maximum iterations of the line search
     parallel_evaluations = 10   # number of parallel evaluations during the parallel line search
 
-    def __init__(self, evaluator, max_iterations = 1, parallel_evaluations = 10):
+    def __init__(self, evaluator, max_iterations = 3, parallel_evaluations = 10):
         super().__init__(evaluator)
         self.max_iterations = max_iterations
         self.parallel_evaluations = parallel_evaluations
@@ -43,6 +43,9 @@ class LinearParallelLineSearch(LineSearch):
         top = 1                     # current highest value of the search window
         l = 0                       # current interation   
         
+        overall_minnorm = float("inf")
+        overall_minalpha = -1
+
         while True:  
             alphas = np.linspace(low,top,num=self.parallel_evaluations)
             evaluations = []
@@ -66,29 +69,39 @@ class LinearParallelLineSearch(LineSearch):
 
                 allNone = False
 
-                residualnorm = np.linalg.norm(nextfunctionvalues[i]-target.getNumpyArray())                
+                residual = nextfunctionvalues[i]-target.getNumpyArray()
+                residualnorm = 0.5*residual.dot(residual)            
                
                 result.log("\t\talpha_" + str(i) + " = " + str(alphas[i]) + ", evalid=" + str(nextevaluations[i].eval_id) + ", residual = " + str(residualnorm))  
             
                 if(residualnorm  < minnorm):
                     minnorm = residualnorm
                     minindex = i
+                    if(minnorm < overall_minnorm):
+                        overall_minnorm = minnorm
+                        overall_minalpha = alphas[minindex]
             
+
             if(allNone):
                 result.log("\t ["+str(l)+"]: no run finished.")
-                return None
+                
+                if l == self.max_iterations:
+                    return None
+                else:
+                    next_low = 0
+                    next_top = top/self.parallel_evaluations
+                    continue
                 
             minindex_alpha = alphas[minindex]
-
             continue_override = False
 
             if minindex == self.parallel_evaluations-1:
                 continue_override = True
                 next_low = top
-                next_top = top + (top-low)/2
+                next_top = top + (top-low)
             elif minindex == 0:
-                continue_override = True
                 if low == 0:
+                    continue_override = True
                     next_low = 0
                     next_top = top/self.parallel_evaluations
                 else:
@@ -98,86 +111,101 @@ class LinearParallelLineSearch(LineSearch):
                 next_low = minindex_alpha - (top-low)/4
                 next_top = minindex_alpha + (top-low)/4
             
-            lowerbound = np.linalg.norm(r) + self.c * minindex_alpha * grad.transpose().dot(stepdirection)
-            result.log("\t ["+str(l)+"]: min_alpha = " + str(minindex_alpha) + ", next interval = [" + str(next_low) + ", " + str(next_top) + "], new residualnorm: " + str(minnorm) + ", wolfe lower bound: " + str(lowerbound))
+            lowerbound = 0.5*r.dot(r) + self.c * overall_minalpha * grad.transpose().dot(stepdirection)
+            result.log("\t ["+str(l)+"]: min_alpha = " + str(overall_minalpha) + ", next interval = [" + str(next_low) + ", " + str(next_top) + "], new residualnorm: " + str(overall_minnorm) + ", wolfe lower bound: " + str(lowerbound))
             l += 1
 
+            if((overall_minnorm < lowerbound and not continue_override)):
+                result.addMetric("alpha", overall_minalpha)
+                return guess+overall_minalpha*stepdirection
 
-            # do not continue if all iterations reached
             if l == self.max_iterations:
-                continue_override = False
-                if minindex_alpha == 0:
-                    return None
-
-            if(minnorm < lowerbound and not continue_override):
-                result.addMetric("alpha",minindex_alpha)
-                return guess+minindex_alpha*stepdirection
+                if overall_minnorm < lowerbound:
+                    return guess+overall_minalpha*stepdirection
+                return None
 
             low = next_low
             top = next_top
                 
-            if l == self.max_iterations:
-                return guess+minindex_alpha*stepdirection
 
 class LogarithmicParallelLineSearch(LineSearch):
     
-    start = -5                # the factor to shrink the observation window in each iteration
+    size = 5
+    highest_power = 0               
     parallel_evaluations = 10   # number of parallel evaluations during the parallel line search
-    c = 1e-4 
+    c = 1e-3 
+    max_iterations = 2
+
+    def __init__(self, evaluator, max_iterations = 2, parallel_evaluations = 10):
+        super().__init__(evaluator)
+        self.max_iterations = max_iterations
+        self.parallel_evaluations = parallel_evaluations
 
     def doLineSearch(self, stepdirection, guess, target, J, r, result):
 
         # calculate the gradient at the current point
         grad = J.transpose().dot(r)   
+        l = 1
+        highest_power = self.highest_power
 
-        evaluations = []
-        alphas = np.logspace(self.start, 0, base=2, num=self.parallel_evaluations)
-        for i in range(self.parallel_evaluations):          
-            evaluations.append(guess+alphas[i]*stepdirection)                         
+        while True:               
+            l += 1
+            evaluations = []
+            alphas = np.logspace(highest_power-self.size, highest_power, base=2, num=self.parallel_evaluations)
+            for i in range(self.parallel_evaluations):          
+                evaluations.append(guess+alphas[i]*stepdirection)                         
 
-        with self.evaluator:
-            nextevaluations = self.evaluator.evaluate(evaluations, True, "linesearch")
+            with self.evaluator:
+                nextevaluations = self.evaluator.evaluate(evaluations, True, "linesearch")
 
-        nextfunctionvalues = self.measurementToNumpyArrayConverter(nextevaluations, target)
+            nextfunctionvalues = self.measurementToNumpyArrayConverter(nextevaluations, target)
 
-        allNone = True
-        minnorm = float("inf")
-        minindex = -1
+            allNone = True
+            minnorm = float("inf")
+            minindex = -1
 
-        # find the evaluation with lowest residualnorm, and check if all evaluations returned none, i.e. did not finish in UG
-        for i in range(self.parallel_evaluations):
-            if(nextevaluations[i] is None or isinstance(nextevaluations[i], ErroredEvaluation)):
-                result.log("\t\talpha_" + str(i)+ " = " + str(alphas[i]) + " did not finish")
-                continue
+            # find the evaluation with lowest residualnorm, and check if all evaluations returned none, i.e. did not finish in UG
+            for i in range(self.parallel_evaluations):
+                if(nextevaluations[i] is None or isinstance(nextevaluations[i], ErroredEvaluation)):
+                    result.log("\t\talpha_" + str(i)+ " = " + str(alphas[i]) + " did not finish")
+                    continue
 
-            allNone = False
+                allNone = False
 
-            residualnorm = np.linalg.norm(nextfunctionvalues[i]-target.getNumpyArray())
+                residual = nextfunctionvalues[i]-target.getNumpyArray()
+                residualnorm = 0.5*residual.dot(residual)  
 
-            result.log("\t\talpha_" + str(i) + " = " + str(alphas[i]) + ", evalid=" + str(nextevaluations[i].eval_id) + ", residual = " + str(residualnorm))  
+                result.log("\t\talpha_" + str(i) + " = " + str(alphas[i]) + ", evalid=" + str(nextevaluations[i].eval_id) + ", residual = " + str(residualnorm))  
+                
+                if(residualnorm  < minnorm):
+                    minnorm = residualnorm
+                    minindex = i
             
-            if(residualnorm  < minnorm):
-                minnorm = residualnorm
-                minindex = i
-        
-        if(allNone):            
-            result.log("\tno run finished.")
-            return None
+            if(allNone):            
+                result.log("\tno run finished.")
+                
+                if l == self.max_iterations:
+                    return None
+                else:
+                    highest_power -= self.size
+                    continue
             
-        else:
             minindex_alpha = alphas[minindex]
 
-            lowerbound = np.linalg.norm(r) + self.c * minindex_alpha * grad.transpose().dot(stepdirection)
-            if minnorm < lowerbound:                
+            lowerbound = 0.5*r.dot(r) + self.c * minindex_alpha * grad.transpose().dot(stepdirection)
+
+            if minnorm < lowerbound and minindex != 0:                
                 result.addMetric("alpha",minindex_alpha)
                 return guess+minindex_alpha*stepdirection
-            else:
+            elif l == self.max_iterations:
                 return None
+            
+            highest_power -= self.size
             
 class BacktrackingLineSearch(LineSearch):
 
     # parameters
-    c = 1e-4
+    c = 1e-3
     rho = 0.5
     max_iterations = 15
 
@@ -197,10 +225,12 @@ class BacktrackingLineSearch(LineSearch):
                 return None
             
             nextfunctionvalue = self.measurementToNumpyArrayConverter(nextevaluation, target)[0]
-            nextresidualnorm = np.linalg.norm(nextfunctionvalue-target.getNumpyArray())
+
+            residual = nextfunctionvalue-target.getNumpyArray()
+            nextresidualnorm = 0.5*residual.dot(residual)  
 
             # wolfe bound
-            lowerbound = np.linalg.norm(r) + self.c * alpha * grad.transpose().dot(stepdirection)
+            lowerbound = 0.5*r.dot(r) + self.c * alpha * grad.transpose().dot(stepdirection)
 
             result.log("\t\t ["+str(l)+"]: alpha = " + str(alpha) + ", new residualnorm: " + str(nextresidualnorm) + ", wolfe lower bound: " + str(lowerbound))
             l += 1

@@ -38,13 +38,16 @@ class LocalEvaluator(Evaluator):
             if transform is True:
                 parameters = self.parametermanager.getTransformedParameters(beta)
                 if parameters is None:
-                    results.append(None)
+                    results.append(ErroredEvaluation(parameters, reason="Infeasible parameters"))
                     continue
             else:
                 parameters = beta
-                if np.min(parameters) < 0:
-                    results.append(ErroredEvaluation(parameters, reason="Infeasible parameters"))
-                    continue 
+
+            res = self.checkCache(parameters)
+
+            if res is not None:
+                results.append(res)
+                continue
                 
             starttime = time.time()
 
@@ -68,7 +71,6 @@ class LocalEvaluator(Evaluator):
                 continue
 
             self.totalevaluationtime += time.time()-starttime
-            self.evaluation_count += 1
             self.handleNewEvaluations([data], tag)
 
             results.append(data)

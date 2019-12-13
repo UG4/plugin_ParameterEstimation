@@ -13,6 +13,7 @@ class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
 
         guess = initial_parameters
         
+        evaluator.setResultObject(result)
 
         result.addRunMetadata("target", target)
         result.addRunMetadata("fixedparameters", evaluator.fixedparameters)
@@ -70,7 +71,7 @@ class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
 class ScipyMinimizeOptimizer(Optimizer):
 
     # opt_method must be one of "L-BFGS-B", "SLSQP" or "TNC"
-    def __init__(self, parametermanager, opt_method="SLSQP", epsilon=1e-3, differencing=Optimizer.Differencing.forward):
+    def __init__(self, parametermanager, opt_method="L-BFGS-B", epsilon=1e-3, differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
         self.parametermanager = parametermanager
         self.opt_method = opt_method
@@ -78,6 +79,8 @@ class ScipyMinimizeOptimizer(Optimizer):
     def run(self, evaluator, initial_parameters, target, result = Result()):
 
         guess = initial_parameters
+
+        evaluator.setResultObject(result)
 
         result.addRunMetadata("target", target)
         result.addRunMetadata("fixedparameters", evaluator.fixedparameters)
@@ -126,12 +129,14 @@ class ScipyMinimizeOptimizer(Optimizer):
             result.addMetric("residualnorm",S)
             result.addMetric("measurement", measurement)
             result.addMetric("measurementEvaluation", evaluation)
-            result.addMetric("residuals",r)
+            result.addMetric("residuals", r)
 
             if(last_S[0] != -1):
-                result.addMetric("reduction",S/last_S[0])
+                result.addMetric("reduction", S/last_S[0])
 
             last_S[0] = S
+
+            # https://stackoverflow.com/a/47443343
             return S
 
         def scipy_jacobi(x):
