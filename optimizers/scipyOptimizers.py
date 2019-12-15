@@ -43,8 +43,8 @@ class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
         # define the callbacks for scipy
         def scipy_fun(x):
             evaluation = evaluator.evaluate([x], True, "function-evaluation")[0]
-            if evaluation is None or isinstance(evaluation, ErroredEvaluation):
-                result.log("Got a None-Evaluation")
+            if isinstance(evaluation, ErroredEvaluation):
+                result.log("Got a ErroredEvaluation: " + evaluation.reason)
                 result.log(evaluator.getStatistics())
                 return
 
@@ -122,8 +122,8 @@ class ScipyMinimizeOptimizer(Optimizer):
         def scipy_function(x):
             result.log("\tEvaluating cost function at x=" + str(x))
             evaluation = evaluator.evaluate([x], True, "function-evaluation")[0]
-            if evaluation is None or isinstance(evaluation, ErroredEvaluation):
-                result.log("Got a None-Evaluation")
+            if isinstance(evaluation, ErroredEvaluation):
+                result.log("Got a ErroredEvaluation: " + evaluation.reason)
                 result.log(evaluator.getStatistics())
                 result.save()
                 exit()

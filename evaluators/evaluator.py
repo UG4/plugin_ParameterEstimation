@@ -33,7 +33,7 @@ class Evaluator(ABC):
         for evaluation in self.cache:
             if evaluation.parameters is None:
                 continue
-            if np.allclose(evaluation.parameters, parameters, rtol=1e-8):
+            if np.allclose(evaluation.parameters, parameters, rtol=1e-8, atol=0):
                 if self.resultobj is not None:
                     self.resultobj.log("Served evaluation " + str(evaluation.eval_id) + " from cache!")
                 self.cached_evaluation_count += 1

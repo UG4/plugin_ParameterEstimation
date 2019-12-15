@@ -59,7 +59,7 @@ class Optimizer(ABC):
 
         result.log("jacobi matrix calculated. evaluations:")
         for ev in evaluations:
-            if ev is None or isinstance(ev, ErroredEvaluation):
+            if isinstance(ev, ErroredEvaluation):
                 # At least one measurement failed
                 return None
             result.log("\tid=" + str(ev.eval_id) + ", timeCount=" + str(ev.timeCount))

@@ -63,8 +63,8 @@ class LinearParallelLineSearch(LineSearch):
 
             # find the evaluation with lowest residualnorm, and check if all evaluations returned none, i.e. did not finish in UG
             for i in range(self.parallel_evaluations):
-                if(nextevaluations[i] is None or isinstance(nextevaluations[i], ErroredEvaluation)):
-                    result.log("\t\talpha_" + str(i)+ " = " + str(alphas[i])+" did not finish")
+                if isinstance(nextevaluations[i], ErroredEvaluation):
+                    result.log("\t\talpha_" + str(i)+ " = " + str(alphas[i])+" errored: " + nextevaluations[i].reason)
                     continue
 
                 allNone = False
@@ -166,8 +166,8 @@ class LogarithmicParallelLineSearch(LineSearch):
 
             # find the evaluation with lowest residualnorm, and check if all evaluations returned none, i.e. did not finish in UG
             for i in range(self.parallel_evaluations):
-                if(nextevaluations[i] is None or isinstance(nextevaluations[i], ErroredEvaluation)):
-                    result.log("\t\talpha_" + str(i)+ " = " + str(alphas[i]) + " did not finish")
+                if isinstance(nextevaluations[i], ErroredEvaluation):
+                    result.log("\t\talpha_" + str(i)+ " = " + str(alphas[i]) + " did not finish: : " + nextevaluations[i].reason)
                     continue
 
                 allNone = False
