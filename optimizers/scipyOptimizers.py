@@ -45,7 +45,7 @@ class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
             evaluation = evaluator.evaluate([x], True, "function-evaluation")[0]
             if evaluation is None or isinstance(evaluation, ErroredEvaluation):
                 result.log("Got a None-Evaluation")
-                result.log(evaluator.printStatistics())
+                result.log(evaluator.getStatistics())
                 return
 
             return evaluation.getNumpyArrayLike(target)-targetdata
@@ -54,7 +54,7 @@ class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
             jacobi_result = self.getJacobiMatrix(x, evaluator, target, result)
             if jacobi_result is None:
                 result.log("Error calculating Jacobi matrix, UG run did not finish")
-                result.log(evaluator.printStatistics())
+                result.log(evaluator.getStatistics())
                 return
 
             V, measurementEvaluation = jacobi_result
@@ -65,7 +65,7 @@ class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
         result.log("point is " + str(scipy_result.x))
         result.log("cost is " + str(scipy_result.cost))
 
-        result.log(evaluator.printStatistics())
+        result.log(evaluator.getStatistics())
         result.save()
 
         return result
@@ -124,7 +124,7 @@ class ScipyMinimizeOptimizer(Optimizer):
             evaluation = evaluator.evaluate([x], True, "function-evaluation")[0]
             if evaluation is None or isinstance(evaluation, ErroredEvaluation):
                 result.log("Got a None-Evaluation")
-                result.log(evaluator.printStatistics())
+                result.log(evaluator.getStatistics())
                 result.save()
                 exit()
 
@@ -151,7 +151,7 @@ class ScipyMinimizeOptimizer(Optimizer):
             jacobi_result = self.getJacobiMatrix(x, evaluator, target, result)
             if jacobi_result is None:
                 result.log("Error calculating Jacobi matrix, UG run did not finish")
-                result.log(evaluator.printStatistics())
+                result.log(evaluator.getStatistics())
                 result.save()
                 return
 
@@ -177,7 +177,7 @@ class ScipyMinimizeOptimizer(Optimizer):
 
         result.log("result is " + str(scipy_result))
 
-        result.log(evaluator.printStatistics())
+        result.log(evaluator.getStatistics())
         result.save()
 
         return result

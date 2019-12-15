@@ -34,7 +34,7 @@ class GaussNewtonOptimizer(Optimizer):
             jacobi_result = self.getJacobiMatrix(guess, evaluator, target, result)
             if jacobi_result is None:
                 result.log("Error calculating Jacobi matrix, UG run did not finish")
-                result.log(evaluator.printStatistics())
+                result.log(evaluator.getStatistics())
                 result.save()
                 return
 
@@ -114,7 +114,7 @@ class GaussNewtonOptimizer(Optimizer):
             if(nextguess is None):
                 result.log("-- Newton method did not converge. --")
                 result.commitIteration()
-                result.log(evaluator.printStatistics())
+                result.log(evaluator.getStatistics())
                 result.save()
                 return result
             
@@ -126,6 +126,6 @@ class GaussNewtonOptimizer(Optimizer):
         if(i == self.maxiterations-1):
             result.log("-- Newton method did not converge. --")
         
-        result.log(evaluator.printStatistics())
+        result.log(evaluator.getStatistics())
         result.save()
         return result

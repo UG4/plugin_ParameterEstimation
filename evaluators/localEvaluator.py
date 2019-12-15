@@ -38,7 +38,7 @@ class LocalEvaluator(Evaluator):
             if transform is True:
                 parameters = self.parametermanager.getTransformedParameters(beta)
                 if parameters is None:
-                    results.append(ErroredEvaluation(parameters, reason="Infeasible parameters"))
+                    results.append(ErroredEvaluation(None, reason="Infeasible parameters"))
                     continue
             else:
                 parameters = beta

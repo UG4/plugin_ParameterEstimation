@@ -38,7 +38,7 @@ class ClusterEvaluator(Evaluator):
         self.jobids = [None] * len(evaluationlist)
         evaluationids = [None] * len(evaluationlist)
         beta = [None] * len(evaluationlist)
-        starttimes =  [None] * len(evaluationlist)
+        starttimes = [None] * len(evaluationlist)
 
         for j in range(len(evaluationlist)):
 
@@ -47,9 +47,9 @@ class ClusterEvaluator(Evaluator):
             if transform:
                 beta[j] = self.parametermanager.getTransformedParameters(beta_j)
                 if beta[j] is None:
-                    results[j] = ErroredEvaluation(beta[j], reason="Infeasible parameters")
+                    results[j] = ErroredEvaluation(None, reason="Infeasible parameters")
             else:
-                beta[j] = beta_j    
+                beta[j] = beta_j
 
             if results[j] is None:
                 results[j] = self.checkCache(beta[j])
@@ -78,7 +78,7 @@ class ClusterEvaluator(Evaluator):
             process.wait()
 
             for line in io.TextIOWrapper(process.stdout, encoding="UTF-8"):
-                if(line.startswith("Received job id")):
+                if line.startswith("Received job id"):
                     self.jobids[j] = int(line.split(" ")[3])
 
             # to avoid bugs with the used scheduler on cesari
@@ -90,9 +90,9 @@ class ClusterEvaluator(Evaluator):
             # for this, call uginfo and parse the output
             process = subprocess.Popen(["uginfo"], stdout=subprocess.PIPE)
             process.wait()
-            lines = io.TextIOWrapper(process.stdout,encoding="UTF-8").readlines()
+            lines = io.TextIOWrapper(process.stdout, encoding="UTF-8").readlines()
             while True:
-                if("JOBID" not in lines[0]):
+                if "JOBID" not in lines[0]:
                     lines.remove(lines[0])
                 else:
                     break
@@ -108,7 +108,7 @@ class ClusterEvaluator(Evaluator):
                     finished = False
                     break
 
-            if(finished):
+            if finished:
                 break
 
             time.sleep(5)
@@ -150,7 +150,7 @@ class ClusterEvaluator(Evaluator):
         process.wait()
         lines = io.TextIOWrapper(process.stdout,encoding="UTF-8").readlines()
         while True:
-            if("JOBID" not in lines[0]):
+            if "JOBID" not in lines[0]:
                 lines.remove(lines[0])
             else:
                 break
@@ -159,9 +159,9 @@ class ClusterEvaluator(Evaluator):
 
         for row in reader:
             jobid = int(row["JOBID"])
-            if((jobid in self.jobids)):
+            if jobid in self.jobids:
                 print("Cancelling " + str(jobid))
 
                 # cancel them using ugcancel
                 process2 = subprocess.Popen(["ugcancel",str(jobid)], stdout=subprocess.PIPE)
-                process2.wait()          
+                process2.wait()

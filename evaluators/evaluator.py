@@ -31,12 +31,14 @@ class Evaluator(ABC):
 
     def checkCache(self, parameters):
         for evaluation in self.cache:
+            if evaluation.parameters is None:
+                continue
             if np.allclose(evaluation.parameters, parameters, rtol=1e-8):
                 if self.resultobj is not None:
                     self.resultobj.log("Served evaluation " + str(evaluation.eval_id) + " from cache!")
                 self.cached_evaluation_count += 1
-                return evaluation                
-        return None 
+                return evaluation
+        return None
 
     def reset(self):
         self.cache = set()
@@ -48,6 +50,7 @@ class Evaluator(ABC):
         string = "Total count of evaluations: " + str(self.total_evaluation_count) + "\n"
         string += "Taken from cache: " + str(self.cached_evaluation_count) + "\n"
         string += "Serial count: " + str(self.serial_evaluation_count)
+        return string
 
     def __str__(self):
         string = "Currently cached Evaluations " + str(len(self.cache)) + "\n" 

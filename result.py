@@ -22,7 +22,6 @@ class Result:
         self.currentIteration = {}
 
         self.metadata = {}
-        self.evaluations = []
 
         self.filename = filename
 
@@ -196,8 +195,8 @@ class Result:
         for i in range(len(parameternames)):
             dg = jacobi[:,i]
             partial = (p[i]/(np.max(m)))*dg
-            if isinstance(self.metadata["target"], TimeDependentMeasurementSeries):
-                partial_series = TimeDependentMeasurementSeries.fromNumpyArray(partial, self.metadata["target"])
+            if isinstance(self.metadata["target"], FreeSurfaceTimeDependentEvaluation):
+                partial_series = FreeSurfaceTimeDependentEvaluation.fromNumpyArray(partial, self.metadata["target"])
                 
                 if extended:
                     partial_series.writeCSVAveragedOverTimesteps(filename + "-" + parameternames[i] + "-over-time.csv")
@@ -232,9 +231,9 @@ class Result:
                         f.write("\\end{center}")
                 else:
                     partial_series.write3dPlot(filename + "-" + parameternames[i] + ".tex", "$\\frac{\\delta g}{\\delta \\beta_0}$ {[m]}",scale=0.8)
-            elif isinstance(self.metadata["target"], EquilibriumMeasurementSeries):
-                partial_series = EquilibriumMeasurementSeries.fromNumpyArray(partial, self.metadata["target"])
-                EquilibriumMeasurementSeries.writePlots({"Sensitivity":partial_series}, filename + "-" + parameternames[i] + ".tex", "$\\frac{\\delta m}{\delta \\beta_"+ str(i) + "}$ {[m]}")
+            elif isinstance(self.metadata["target"], FreeSurfaceEquilibriumEvaluation):
+                partial_series = FreeSurfaceEquilibriumEvaluation.fromNumpyArray(partial, self.metadata["target"])
+                FreeSurfaceEquilibriumEvaluation.writePlots({"Sensitivity":partial_series}, filename + "-" + parameternames[i] + ".tex", "$\\frac{\\delta m}{\delta \\beta_"+ str(i) + "}$ {[m]}")
                 
     def plotComparison(self, filename):
 
@@ -242,10 +241,10 @@ class Result:
         result = self.iterations[self.iterationCount-1]["measurementEvaluation"]
         start = self.iterations[0]["measurementEvaluation"]
 
-        if isinstance(target, EquilibriumMeasurementSeries):
-            result = EquilibriumMeasurementSeries.fromTimedependentTimeseries(result)
-            start = EquilibriumMeasurementSeries.fromTimedependentTimeseries(start)
-            EquilibriumMeasurementSeries.writePlots({"result":result, "target":target, "start":start}, filename) 
+        if isinstance(target, FreeSurfaceEquilibriumEvaluation):
+            result = FreeSurfaceEquilibriumEvaluation.fromTimedependentTimeseries(result)
+            start = FreeSurfaceEquilibriumEvaluation.fromTimedependentTimeseries(start)
+            FreeSurfaceEquilibriumEvaluation.writePlots({"result":result, "target":target, "start":start}, filename) 
         else:
             with open(filename,"w") as f:
                 f.write("\\begin{center}\n")
@@ -278,7 +277,9 @@ class Result:
         self.metadata[name] = value
 
     def addEvaluations(self, evaluations, tag=None):
-        self.evaluations.append((copy.deepcopy(evaluations), tag, self.iterationCount))
+        if "evaluations" not in self.currentIteration:
+            self.currentIteration["evaluations"] = []
+        self.currentIteration["evaluations"].append((copy.deepcopy(evaluations), tag, self.iterationCount))
 
     def addMetric(self, name, value):
         self.currentIteration[name] = value

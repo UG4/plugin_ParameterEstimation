@@ -58,7 +58,7 @@ class BayesOptimizer(Optimizer):
             for ev in result_evaluations:
                 if ev is None or isinstance(ev, ErroredEvaluation):                    
                     result.log("got a None-result! UG run did not finish or parameter was out of bounds...")                    
-                    result.log(evaluator.printStatistics())
+                    result.log(evaluator.getStatistics())
                     return
 
             Y = []
@@ -94,6 +94,6 @@ class BayesOptimizer(Optimizer):
         if(iteration == self.max_iterations-1):
             result.log("-- Bayesian optimization did not converge. --")
         
-        result.log(evaluator.printStatistics())
+        result.log(evaluator.getStatistics())
         return result
     
