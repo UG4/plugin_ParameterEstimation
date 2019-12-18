@@ -136,16 +136,17 @@ class LogarithmicParallelLineSearch(LineSearch):
     c = 1e-3 
     max_iterations = 2
 
-    def __init__(self, evaluator, max_iterations = 2, parallel_evaluations = 10):
+    def __init__(self, evaluator, max_iterations = 2, size = 5, parallel_evaluations = 10):
         super().__init__(evaluator)
         self.max_iterations = max_iterations
+        self.size = size
         self.parallel_evaluations = parallel_evaluations
 
     def doLineSearch(self, stepdirection, guess, target, J, r, result):
 
         # calculate the gradient at the current point
         grad = J.transpose().dot(r)   
-        l = 1
+        l = 0
         highest_power = self.highest_power
 
         while True:               
