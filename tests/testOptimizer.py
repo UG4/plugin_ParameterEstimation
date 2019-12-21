@@ -12,7 +12,7 @@ pm.addParameter(DirectParameter("x2", 5.0, 0, 10))
 result = Result("results_newton.pkl")
 evaluator = TestEvaluator(pm, result)
 
-optimizer = GaussNewtonOptimizer(LogarithmicParallelLineSearch(evaluator))
+optimizer = GaussNewtonOptimizer(LinearParallelLineSearch(evaluator))
 
 with evaluator:
     target = evaluator.evaluate([np.array([2.0,3.0])], transform=False, tag="target")[0]
@@ -30,3 +30,12 @@ optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
 
 
 print(evaluator)
+# evaluator.reset()
+# result = Result("results_scipy.pkl")
+
+# optimizer = BayesOptimizer(pm)
+# optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
+
+
+# print(evaluator)
+

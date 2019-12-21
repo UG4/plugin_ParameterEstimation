@@ -4,7 +4,7 @@ import numpy as np
 
 class MMAOptimizer(Optimizer):
 
-    def __init__(self, maximum, minimum, minreduction = 1e-4, max_iterations=15, epsilon=1e-3, differencing=Optimizer.Differencing.forward):
+    def __init__(self, maximum, minimum, minreduction=1e-4, max_iterations=15, epsilon=np.sqrt(np.finfo(np.float).eps), differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
         self.maximum = maximum
         self.minimum = minimum

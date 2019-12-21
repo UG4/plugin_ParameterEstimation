@@ -5,7 +5,7 @@ from scipy import stats
 
 class GaussNewtonOptimizer(Optimizer):
         
-    def __init__(self, linesearchmethod: LineSearch, maxiterations = 15, epsilon=1e-3, minreduction=1e-4,max_error_ratio=(0.05,0.95), differencing=Optimizer.Differencing.forward):
+    def __init__(self, linesearchmethod: LineSearch, maxiterations = 15, epsilon=np.sqrt(np.finfo(np.float).eps), minreduction=1e-4,max_error_ratio=(0.05,0.95), differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
         self.linesearchmethod = linesearchmethod
         self.maxiterations = maxiterations

@@ -29,65 +29,67 @@ class Result:
     def iterationCount(self):
         return len(self.iterations)
 
-    def writeTable(self, file, parameternames, metadata):
+    def writeTable(self, file, metadata):
 
+        pm = self.metadata["parametermanager"]
         with open(file,"w") as f:
             
             # write table header
             f.write("step" + "\t")
-            for p in parameternames:
-                f.write(p+"\t")
+            for p in pm.parameters:
+                f.write(p.name+"\t")
             for p in metadata:
-                f.write(p+"\t")
+                f.write(p[0]+"\t")
 
             f.write("\n")
 
             i = 0
             for iteration in self.iterations:
                 f.write(str(i) + "\t")
-                for j in range(len(parameternames)):
+                for j in range(len(pm.parameters)):
                     f.write(str(iteration["parameters"][j]) + "\t")
 
                 for p in metadata:
-                    if p in iteration:
-                        f.write(str(iteration[p]) + "\t")
+                    if p[1] in iteration:
+                        f.write(str(iteration[p[1]]) + "\t")
                     else:
                         f.write("NaN\t")
                 
                 f.write("\n")
                 i += 1
     
-    def writeLatexTable(self, file, parameternames, metadata):
+    def writeLatexTable(self, file, metadata):
 
+        pm = self.metadata["parametermanager"]
         with open(file,"w") as f:
             
             # write table header
             f.write("\\begin{tabular}{")
             
-            count = len(parameternames) + len(metadata)
+            count = len(pm.parameters) + len(metadata)
             f.write("c||")
             for i in range(count-1):
                 f.write("c|")
             f.write("c}\\\\\n")
 
             f.write("step" + " & ")
-            for i in range(len(parameternames)):
-                p = parameternames[i]
-                f.write("$\\beta_"+str(i)+"$ (\\verb|"+p+"|) & ")
+            for i in range(len(pm.parameters)):
+                p = pm.parameters[i].name
+                f.write("$\\theta_"+str(i)+"$ (\\verb|"+p+"|) & ")
 
             for i in range(len(metadata)-1):
-                f.write(metadata[i]+"&")            
-            f.write(metadata[-1]+"\\\\\hline\n")
+                f.write(metadata[i][0]+"&")            
+            f.write(metadata[-1][0]+"\\\\\hline\n")
 
             i = 0
             for iteration in self.iterations:
                 f.write(str(i) + " & ")
-                for j in range(len(parameternames)):
-                    entry = self.metadata["parametermanager"].parameters[j].getTransformedParameter(iteration["parameters"][j])
+                for j in range(len(pm.parameters)):
+                    entry = pm.parameters[j].getTransformedParameter(iteration["parameters"][j])
                     f.write("$" + self.getLatexString(entry) + "$"+ " & ")
 
                 for j in range(len(metadata)):
-                    p = metadata[j]
+                    p = metadata[j][1]
                     if p in iteration:
                         f.write("$" + self.getLatexString(iteration[p]) + "$" )
                     else:
@@ -102,35 +104,36 @@ class Result:
             f.write("\\end{tabular}")
 
     
-    def writeErrorTable(self, file, parameternames, confidence=0.95):
+    def writeErrorTable(self, file, confidence=0.95):
 
+        pm = self.metadata["parametermanager"]
         with open(file,"w") as f:
             
             # write table header
             f.write("\\begin{tabular}{")
             
-            count = len(parameternames)*2
+            count = len(pm.parameters)*2
             f.write("c||")
             for i in range(count-1):
                 f.write("c|")
             f.write("c}\n")
 
             f.write("step" + " & ")
-            for i in range(len(parameternames)-1):
-                p = parameternames[i]
+            for i in range(len(pm.parameters)-1):
+                p = pm.parameters[i].name
                 f.write("$\\beta_"+str(i)+"$ ("+p+") & ")
                 f.write("se($\\beta_" + str(i) + "$) & ")
         
-            i = len(parameternames)-1
-            f.write("$\\beta_"+str(i)+"$ (\\verb|"+parameternames[-1]+"|) & ")
+            i = len(pm.parameters)-1
+            f.write("$\\beta_"+str(i)+"$ (\\verb|"+pm.parameters[-1].name+"|) & ")
             f.write("se($\\beta_" + str(i) + "$) \\\\\hline\n")
             
 
             i = 0
             for iteration in self.iterations:
                 f.write(str(i) + " & ")
-                for j in range(len(parameternames)):
-                    entry = self.metadata["parametermanager"].parameters[j].getTransformedParameter(iteration["parameters"][j])
+                for j in range(len(pm.parameters)):
+                    entry = pm.parameters[j].getTransformedParameter(iteration["parameters"][j])
                     error = iteration["errors"][j]
                     if "confidenceinterval" in iteration:
                         interval = iteration["confidenceinterval"][j]
@@ -141,7 +144,7 @@ class Result:
                     error = iteration["errors"][j]
                     f.write("$" + self.getLatexString(error) + "$")
 
-                    if j == len(parameternames)-1:
+                    if j == len(pm.parameters)-1:
                         f.write("\\\\\n")
                     else:
                         f.write(" & ")
@@ -174,8 +177,9 @@ class Result:
                 
                 f.write("\\end{pmatrix}$$\n")
 
-    def writeSensitivityPlots(self, filename, iteration, parameternames,extended=True):
+    def writeSensitivityPlots(self, filename, iteration, extended=True):
 
+        pm = self.metadata["parametermanager"]
         if iteration == -1:
             iteration = self.iterationCount-1
 
@@ -188,31 +192,31 @@ class Result:
         p = iterationdata["parameters"]
         m = iterationdata["measurement"]
 
-        if len(parameternames) != jacobi.shape[1]:
+        if len(pm.parameters) != jacobi.shape[1]:
             print("Mismatch of parameter count!")
             return
 
-        for i in range(len(parameternames)):
+        for i in range(len(pm.parameters)):
             dg = jacobi[:,i]
             partial = (p[i]/(np.max(m)))*dg
             if isinstance(self.metadata["target"], FreeSurfaceTimeDependentEvaluation):
                 partial_series = FreeSurfaceTimeDependentEvaluation.fromNumpyArray(partial, self.metadata["target"])
                 
                 if extended:
-                    partial_series.writeCSVAveragedOverTimesteps(filename + "-" + parameternames[i] + "-over-time.csv")
-                    partial_series.writeCSVAveragedOverLocation(filename + "-" + parameternames[i] + "-over-location.csv")
+                    partial_series.writeCSVAveragedOverTimesteps(filename + "-" + pm.parameters[i].name + "-over-time.csv")
+                    partial_series.writeCSVAveragedOverLocation(filename + "-" + pm.parameters[i].name + "-over-location.csv")
                 
-                    with open(filename + "-" + parameternames[i] + ".tex","w") as f:                    
+                    with open(filename + "-" + pm.parameters[i].name + ".tex","w") as f:                    
                         f.write("\\begin{center}\n")
                         f.write("\\begin{minipage}{0.4\\textwidth}\n")
                         f.write("\t\\begin{tikzpicture}[scale=0.8]\n")
                         f.write("	\\begin{axis}[\n")
                         f.write("	xlabel=Zeit,\n")
-                        f.write("	ylabel=$\\frac{\\delta m}{\\delta \\beta_"+ str(i) + "}$,\n")
+                        f.write("	ylabel=$\\frac{\\delta m}{\\delta \\theta_"+ str(i) + "}$,\n")
                         f.write("	legend style={\n")
                         f.write("		at={(0,0)},\n")
                         f.write("		anchor=north,at={(axis description cs:0.5,-0.18)}}]\n")
-                        f.write("	\\addplot [thick] table [x={time}, y={value}] {"+filename + "-" + parameternames[i] + "-over-location.csv"+"};\n")
+                        f.write("	\\addplot [thick] table [x={time}, y={value}] {"+filename + "-" + pm.parameters[i].name + "-over-location.csv"+"};\n")
                         f.write("	\\end{axis}\n")
                         f.write("	\\end{tikzpicture}\n")
                         f.write("\\end{minipage}	 \n")
@@ -224,18 +228,18 @@ class Result:
                         f.write("		legend style={\n")
                         f.write("			at={(0,0)},\n")
                         f.write("			anchor=north,at={(axis description cs:0.5,-0.18)}} ]\n")
-                        f.write("		\\addplot [thick] table [x={location}, y={value}] {"+filename + "-" + parameternames[i] + "-over-time.csv};\n")
+                        f.write("		\\addplot [thick] table [x={location}, y={value}] {"+filename + "-" + pm.parameters[i].name + "-over-time.csv};\n")
                         f.write("		\\end{axis}\n")
                         f.write("		\\end{tikzpicture}\n")
                         f.write("\\end{minipage}\\\\\n")  
                         f.write("\\end{center}")
                 else:
-                    partial_series.write3dPlot(filename + "-" + parameternames[i] + ".tex", "$\\frac{\\delta g}{\\delta \\beta_0}$ {[m]}",scale=0.8)
+                    partial_series.write3dPlot(filename + "-" + pm.parameters[i].name + ".tex", "$\\frac{\\delta g}{\\delta \\beta_0}$ {[m]}",scale=0.8)
             elif isinstance(self.metadata["target"], FreeSurfaceEquilibriumEvaluation):
                 partial_series = FreeSurfaceEquilibriumEvaluation.fromNumpyArray(partial, self.metadata["target"])
-                FreeSurfaceEquilibriumEvaluation.writePlots({"Sensitivity":partial_series}, filename + "-" + parameternames[i] + ".tex", "$\\frac{\\delta m}{\delta \\beta_"+ str(i) + "}$ {[m]}")
+                FreeSurfaceEquilibriumEvaluation.writePlots({"Sensitivity":partial_series}, filename + "-" + pm.parameters[i].name + ".tex", "$\\frac{\\delta m}{\delta \\beta_"+ str(i) + "}$ {[m]}")
                 
-    def plotComparison(self, filename):
+    def plotComparison(self, filename, force2d=False):
 
         target = self.metadata["target"]
         result = self.iterations[self.iterationCount-1]["measurementEvaluation"]
@@ -244,23 +248,29 @@ class Result:
         if isinstance(target, FreeSurfaceEquilibriumEvaluation):
             result = FreeSurfaceEquilibriumEvaluation.fromTimedependentTimeseries(result)
             start = FreeSurfaceEquilibriumEvaluation.fromTimedependentTimeseries(start)
-            FreeSurfaceEquilibriumEvaluation.writePlots({"result":result, "target":target, "start":start}, filename) 
+            FreeSurfaceEquilibriumEvaluation.writePlots({"Nach Kalibrierung":{"eval":result}, "Kalibrierungsziel":{"eval":target, "dashed":True}, "Startparameter":{"eval":start}}, filename) 
         else:
-            with open(filename,"w") as f:
-                f.write("\\begin{center}\n")
-                f.write("\\begin{minipage}{0.3\\textwidth}\n")                    
-                f.write(target.write3dPlot(None, scale=0.4)) 
-                f.write("\\\ntarget")                     
-                f.write("\\end{minipage}	 \n")
-                f.write("\\begin{minipage}{0.3\\textwidth}\n")                    
-                f.write(start.write3dPlot(None, scale=0.4)) 
-                f.write("\\\nstart")                     
-                f.write("\\end{minipage}	 \n")
-                f.write("\\begin{minipage}{0.3\\textwidth}\n")                 
-                f.write(result.write3dPlot(None, scale=0.4))
-                f.write("\\\nresult")  
-                f.write("\\end{minipage}\\\\\n")  
-                f.write("\\end{center}")
+            if force2d:
+                result = FreeSurfaceEquilibriumEvaluation.fromTimedependentTimeseries(result)
+                start = FreeSurfaceEquilibriumEvaluation.fromTimedependentTimeseries(start)
+                target = FreeSurfaceEquilibriumEvaluation.fromTimedependentTimeseries(target)
+                FreeSurfaceEquilibriumEvaluation.writePlots({"Nach Kalibrierung":{"eval":result}, "Kalibrierungsziel":{"eval":target, "dashed":True}, "Startparameter":{"eval":start}}, filename) 
+            else:
+                with open(filename,"w") as f:
+                    f.write("\\begin{center}\n")
+                    f.write("\\begin{minipage}{0.3\\textwidth}\n")                    
+                    f.write(target.write3dPlot(None, scale=0.4)) 
+                    f.write("\\\ntarget")                     
+                    f.write("\\end{minipage}	 \n")
+                    f.write("\\begin{minipage}{0.3\\textwidth}\n")                    
+                    f.write(start.write3dPlot(None, scale=0.4)) 
+                    f.write("\\\nstart")                     
+                    f.write("\\end{minipage}	 \n")
+                    f.write("\\begin{minipage}{0.3\\textwidth}\n")                 
+                    f.write(result.write3dPlot(None, scale=0.4))
+                    f.write("\\\nresult")  
+                    f.write("\\end{minipage}\\\\\n")  
+                    f.write("\\end{center}")
 
     def getLatexString(self, number):
         exp = fexp(number)

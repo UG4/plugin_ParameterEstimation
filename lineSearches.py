@@ -46,8 +46,10 @@ class LinearParallelLineSearch(LineSearch):
         overall_minnorm = float("inf")
         overall_minalpha = -1
 
-        while True:  
-            alphas = np.linspace(low,top,num=self.parallel_evaluations)
+        all_alphas = []
+
+        while True:
+            alphas = np.linspace(low, top, num=self.parallel_evaluations)
             evaluations = []
             for i in range(self.parallel_evaluations):           
                 evaluations.append(guess+alphas[i]*stepdirection)                         
@@ -65,12 +67,14 @@ class LinearParallelLineSearch(LineSearch):
             for i in range(self.parallel_evaluations):
                 if isinstance(nextevaluations[i], ErroredEvaluation):
                     result.log("\t\talpha_" + str(i)+ " = " + str(alphas[i])+" errored: " + nextevaluations[i].reason)
+                    all_alphas.append((alphas[i], None))
                     continue
 
                 allNone = False
 
                 residual = nextfunctionvalues[i]-target.getNumpyArray()
-                residualnorm = 0.5*residual.dot(residual)            
+                residualnorm = 0.5*residual.dot(residual)
+                all_alphas.append((alphas[i], residualnorm))
                
                 result.log("\t\talpha_" + str(i) + " = " + str(alphas[i]) + ", evalid=" + str(nextevaluations[i].eval_id) + ", residual = " + str(residualnorm))  
             
@@ -85,7 +89,8 @@ class LinearParallelLineSearch(LineSearch):
             if(allNone):
                 result.log("\t ["+str(l)+"]: no run finished.")
                 
-                if l == self.max_iterations:
+                if l == self.max_iterations:                
+                    result.addMetric("lineSearchAlphas", all_alphas)
                     return None
                 else:
                     next_low = 0
@@ -117,15 +122,19 @@ class LinearParallelLineSearch(LineSearch):
 
             if((overall_minnorm < lowerbound and not continue_override)):
                 result.addMetric("alpha", overall_minalpha)
+                result.addMetric("lineSearchAlphas", all_alphas)
                 return guess+overall_minalpha*stepdirection
 
             if l == self.max_iterations:
+                                
+                result.addMetric("lineSearchAlphas", all_alphas)
                 if overall_minnorm < lowerbound:
+                    result.addMetric("alpha", overall_minalpha)
                     return guess+overall_minalpha*stepdirection
                 return None
 
             low = next_low
-            top = next_top
+            top = next_top            
                 
 
 class LogarithmicParallelLineSearch(LineSearch):
@@ -148,6 +157,7 @@ class LogarithmicParallelLineSearch(LineSearch):
         grad = J.transpose().dot(r)   
         l = 0
         highest_power = self.highest_power
+        all_alphas = []
 
         while True:               
             l += 1
@@ -169,12 +179,14 @@ class LogarithmicParallelLineSearch(LineSearch):
             for i in range(self.parallel_evaluations):
                 if isinstance(nextevaluations[i], ErroredEvaluation):
                     result.log("\t\talpha_" + str(i)+ " = " + str(alphas[i]) + " did not finish: : " + nextevaluations[i].reason)
+                    all_alphas.append((alphas[i], None))
                     continue
 
                 allNone = False
 
                 residual = nextfunctionvalues[i]-target.getNumpyArray()
-                residualnorm = 0.5*residual.dot(residual)  
+                residualnorm = 0.5*residual.dot(residual)
+                all_alphas.append((alphas[i], residualnorm))
 
                 result.log("\t\talpha_" + str(i) + " = " + str(alphas[i]) + ", evalid=" + str(nextevaluations[i].eval_id) + ", residual = " + str(residualnorm))  
                 
@@ -186,6 +198,8 @@ class LogarithmicParallelLineSearch(LineSearch):
                 result.log("\tno run finished.")
                 
                 if l == self.max_iterations:
+
+                    result.addMetric("lineSearchAlphas", all_alphas)
                     return None
                 else:
                     highest_power -= self.size
@@ -195,10 +209,12 @@ class LogarithmicParallelLineSearch(LineSearch):
 
             lowerbound = 0.5*r.dot(r) + self.c * minindex_alpha * grad.transpose().dot(stepdirection)
 
-            if minnorm < lowerbound and minindex != 0:                
-                result.addMetric("alpha",minindex_alpha)
+            if minnorm < lowerbound and minindex != 0:          
+                result.addMetric("alpha", minindex_alpha)
+                result.addMetric("lineSearchAlphas", all_alphas)
                 return guess+minindex_alpha*stepdirection
             elif l == self.max_iterations:
+                result.addMetric("lineSearchAlphas", all_alphas)
                 return None
             
             highest_power -= self.size

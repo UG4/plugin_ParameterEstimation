@@ -75,7 +75,7 @@ class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
 class ScipyMinimizeOptimizer(Optimizer):
 
     # opt_method must be one of "L-BFGS-B", "SLSQP" or "TNC"
-    def __init__(self, parametermanager, opt_method="L-BFGS-B", epsilon=1e-3, differencing=Optimizer.Differencing.forward):
+    def __init__(self, parametermanager, opt_method="L-BFGS-B", epsilon=np.sqrt(np.finfo(np.float).eps), differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
         self.parametermanager = parametermanager
         self.opt_method = opt_method

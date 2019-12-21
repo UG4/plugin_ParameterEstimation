@@ -6,8 +6,8 @@ import skopt
 
 class BayesOptimizer(Optimizer):
 
-    def __init__(self, parametermanager: ParameterManager, minreduction=1e-4, max_iterations=20):
-        super().__init__(1e-3, Optimizer.Differencing.forward)
+    def __init__(self, parametermanager: ParameterManager, epsilon=np.sqrt(np.finfo(np.float).eps), minreduction=1e-4, max_iterations=20):
+        super().__init__(epsilon, Optimizer.Differencing.forward)
         self.parametermanager = parametermanager
         self.minreduction = minreduction
         self.max_iterations = max_iterations
@@ -43,7 +43,9 @@ class BayesOptimizer(Optimizer):
 
         bayes_optimizer = skopt.Optimizer(
             dimensions,
-            base_estimator="RF",
+            base_estimator="GP",
+            n_initial_points=2,
+            acq_func="EI",
             random_state=1
         )
 
@@ -69,13 +71,15 @@ class BayesOptimizer(Optimizer):
             for i in range(len(results)):
 
                 residual = results[i] - targetdata
-                S = np.linalg.norm(residual)
+                S = 0.5*residual.dot(residual)
 
                 if min_S is None or min_S > S:
                     min_S = S
                     min_Index = i
 
                 Y.append(S)
+
+            print(Y)
 
             bayes_optimizer.tell(needed_evaluations, Y)
             

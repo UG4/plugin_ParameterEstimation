@@ -3,6 +3,8 @@ import numpy as np
 import math
 import os
 import csv
+import itertools
+import struct
 
 class FreeSurfaceEvaluation(Evaluation):
 
@@ -109,9 +111,12 @@ class FreeSurfaceEquilibriumEvaluation(FreeSurfaceEvaluation):
         plot += "		anchor=north west,at={(axis description cs:1.01,1)}} ]\n"
 
         for k in series:
-            seriesobject = series[k]
+            seriesobject = series[k]["eval"]
 
-            plot += "\t\t\\addplot+[thick,mark=*]\n"
+            if "dashed" in series[k] and series[k]["dashed"]:
+                plot += "\t\t\\addplot+[thick,mark=*,dashed]\n"
+            else:
+                plot += "\t\t\\addplot+[thick,mark=*]\n"
             plot += "\t\t table [x={location}, y={value}]{ \n"
             plot += "location\t value\n"        
 
@@ -136,6 +141,28 @@ class FreeSurfaceEquilibriumEvaluation(FreeSurfaceEvaluation):
     def getNumpyArrayLike(self, target):
         raise NotImplementedError("FreeSurfaceEquilibriumEvaluation doesn't implement getNumpyArrayLike()")
 
+class BinaryReader:
+
+    def __init__(self, filename, endian="<"):
+        self.file = open(filename, "rb")
+        self.endian = endian
+
+    @property
+    def readable(self):
+        return self.file.readable()
+
+    def read_int(self):
+        return struct.unpack(self.endian + "i", self.file.read(4))[0]
+
+    def read_double(self):
+        return struct.unpack(self.endian + "d", self.file.read(8))[0]
+    
+    def read_char(self):
+        return struct.unpack(self.endian + "b", self.file.read(1))[0]
+
+    def close(self):
+        self.file.close()
+
 class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):    
 
     EQUILIBRIUM_CONSTANT = 10  
@@ -147,17 +174,71 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
         self.dimension = dimension
         self.eval_id = eval_id
         self.parameters = parameters
-        self.runtime = runtime
+        self.runtime = runtime    
 
     @classmethod
-    def parse(cls, directory, evaluation_id, parameters=None, runtime=None):
+    def parseBinary(cls, file, evaluation_id, parameters=None, runtime=None):
+
         data = []
         times = []
         locations = []
         finished = False
         dimension = -1
 
-        filename = os.path.join(directory, str(evaluation_id) + "_measurement.txt")
+        reader = BinaryReader(file)
+
+        dimension = reader.read_int()
+
+        while reader.readable:
+            status = reader.read_char()
+            if status == 1:
+                time = reader.read_double()
+                if not time in times:
+                    times.append(time)
+                    data.append([])
+                    
+                if(dimension == 2):
+                    location = reader.read_double()
+                elif dimension == 3:
+                    location = (reader.read_double(), reader.read_double())
+                
+                if location not in locations:
+                    locations.append(location)
+
+                data[-1].append(reader.read_double())
+            elif status == 2:
+                finished = True
+                break
+
+        reader.close()
+
+        if finished:
+            return cls(data, times, locations, dimension, evaluation_id, parameters, runtime)
+        else:
+            return ErroredEvaluation(parameters, "UG run did not finish.", evaluation_id, runtime)
+
+    @classmethod
+    def parse(cls, directory, evaluation_id, parameters=None, runtime=None):
+        
+        filenameBin = os.path.join(directory, str(evaluation_id) + "_measurement.bin")
+
+        if os.path.isfile(filenameBin):
+            return FreeSurfaceTimeDependentEvaluation.parseBinary(filenameBin, evaluation_id, parameters, runtime)
+        elif os.path.isfile(filenameBin): 
+            filenameTXT = os.path.join(directory, str(evaluation_id) + "_measurement.txt")
+            return FreeSurfaceTimeDependentEvaluation.parseFromTXT(filenameTXT, evaluation_id, parameters, runtime)
+        else:
+            return ErroredEvaluation(parameters, "No measurement file found.", evaluation_id, runtime)
+
+
+    @classmethod
+    def parseFromTXT(cls, filename, evaluation_id, parameters=None, runtime=None):
+
+        data = []
+        times = []
+        locations = []
+        finished = False
+        dimension = -1
 
         with open(filename) as f:
             for line in f:
@@ -373,7 +454,7 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
         plot += "\t\t\\begin{axis}[\n"                    
         plot += "	xlabel={Ort $l$ {[m]}},\n"     
         plot += "	width=10cm,\n"
-        plot += "	ylabel={$m(l,t,\\vec{\\beta})$},\n"
+        plot += "	ylabel={$m(l,t,\\vec{\\theta})$ {[m]}}},\n"
         plot += "	legend style={\n"
         plot += "		anchor=north west,at={(axis description cs:1.01,1)}} ]\n"
         
