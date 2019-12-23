@@ -25,7 +25,7 @@ evaluator.reset()
 result = Result("results_scipy.pkl")
 
 
-optimizer = ScipyMinimizeOptimizer(pm)
+optimizer = LevMarOptimizer(LinearParallelLineSearch(evaluator))
 optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
 
 
