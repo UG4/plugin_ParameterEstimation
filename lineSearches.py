@@ -93,8 +93,8 @@ class LinearParallelLineSearch(LineSearch):
                     result.addMetric("lineSearchAlphas", all_alphas)
                     return None
                 else:
-                    next_low = 0
-                    next_top = top/self.parallel_evaluations
+                    low = 0
+                    top = top/self.parallel_evaluations
                     continue
                 
             minindex_alpha = alphas[minindex]
