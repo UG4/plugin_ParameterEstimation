@@ -149,7 +149,8 @@ class BinaryReader:
 
     @property
     def readable(self):
-        return self.file.readable()
+        peek = self.file.peek(1)
+        return peek != b''
 
     def read_int(self):
         return struct.unpack(self.endian + "i", self.file.read(4))[0]
