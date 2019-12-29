@@ -18,6 +18,9 @@ class Optimizer(ABC):
         self.differencing = differencing
         self.finite_differencing_epsilon = epsilon
 
+        if epsilon < 0:
+            epsilon = np.sqrt(np.finfo(np.float).eps)
+
     def measurementToNumpyArrayConverter(self, evaluations, target):        
         results = []
         for e in evaluations:
