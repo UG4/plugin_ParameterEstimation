@@ -23,11 +23,14 @@ class Evaluator(ABC):
         self.resultobj = res
     
     def handleNewEvaluations(self, evaluations, tag):
-        if self.resultobj is not None:
-            self.resultobj.addEvaluations(evaluations, tag)
         self.cache.update(evaluations)       
         self.serial_evaluation_count += 1
         self.total_evaluation_count += len(evaluations)
+        if self.resultobj is not None:
+            self.resultobj.addEvaluations(evaluations, tag)
+            self.resultobj.addRunMetadata("evaluator_totalcount", self.total_evaluation_count)
+            self.resultobj.addRunMetadata("evaluator_serialcount", self.serial_evaluation_count)
+            self.resultobj.addRunMetadata("evaluator_cachehits", self.cached_evaluation_count)
 
     def checkCache(self, parameters):
         for evaluation in self.cache:

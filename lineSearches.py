@@ -24,7 +24,6 @@ class LineSearch(ABC):
 class LinearParallelLineSearch(LineSearch):
 
     c = 1e-3                    # c for the wolfe lower bound  
-    gamma = 0.5                 # the factor to shrink the observation window in each iteration
     max_iterations = 1         # number of maximum iterations of the line search
     parallel_evaluations = 10   # number of parallel evaluations during the parallel line search
 
@@ -47,6 +46,9 @@ class LinearParallelLineSearch(LineSearch):
         overall_minalpha = -1
 
         all_alphas = []
+
+        result.addRunMetadata("ls_maxiterations", self.max_iterations)
+        result.addRunMetadata("ls_parallel_evaluations", self.parallel_evaluations)
 
         while True:
             alphas = np.linspace(low, top, num=self.parallel_evaluations)
@@ -158,6 +160,10 @@ class LogarithmicParallelLineSearch(LineSearch):
         l = 0
         highest_power = self.highest_power
         all_alphas = []
+        
+        result.addRunMetadata("ls_maxiterations", self.max_iterations)
+        result.addRunMetadata("ls_size", self.size)
+        result.addRunMetadata("ls_parallel_evaluations", self.parallel_evaluations)
 
         while True:               
             l += 1

@@ -5,7 +5,7 @@ import scipy
 
 class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
 
-    def __init__(self, parametermanager: ParameterManager, epsilon=1e-4, differencing=Optimizer.Differencing.forward):
+    def __init__(self, parametermanager: ParameterManager, epsilon=1e-3, differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
         self.parametermanager = parametermanager
 
@@ -16,8 +16,9 @@ class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
         evaluator.setResultObject(result)
 
         result.addRunMetadata("target", target)
+        result.addRunMetadata("optimizertype", type(self).__name__)
         result.addRunMetadata("epsilon", self.finite_differencing_epsilon)
-        result.addRunMetadata("differencing", self.differencing)
+        result.addRunMetadata("differencing", self.differencing.value)
         result.addRunMetadata("fixedparameters", evaluator.fixedparameters)
         result.addRunMetadata("parametermanager", evaluator.parametermanager)
 
@@ -89,8 +90,9 @@ class ScipyMinimizeOptimizer(Optimizer):
         evaluator.setResultObject(result)
 
         result.addRunMetadata("target", target)
+        result.addRunMetadata("optimizertype", type(self).__name__)
         result.addRunMetadata("epsilon", self.finite_differencing_epsilon)
-        result.addRunMetadata("differencing", self.differencing)
+        result.addRunMetadata("differencing", self.differencing.value)
         result.addRunMetadata("fixedparameters", evaluator.fixedparameters)
         result.addRunMetadata("parametermanager", self.parametermanager)
 

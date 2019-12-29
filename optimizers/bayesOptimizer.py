@@ -17,6 +17,7 @@ class BayesOptimizer(Optimizer):
         evaluator.resultobj = result    
 
         result.addRunMetadata("target", target)
+        result.addRunMetadata("optimizertype", type(self).__name__)
         result.addRunMetadata("fixedparameters", evaluator.fixedparameters)
         result.addRunMetadata("parametermanager", self.parametermanager)
 
