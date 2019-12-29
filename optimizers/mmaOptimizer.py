@@ -17,6 +17,7 @@ class MMAOptimizer(Optimizer):
 
         result.addRunMetadata("target", target)
         result.addRunMetadata("epsilon", self.finite_differencing_epsilon)
+        result.addRunMetadata("differencing", self.differencing)
         result.addRunMetadata("fixedparameters", self.evaluator.fixedparameters)
         result.addRunMetadata("parametermanager", self.evaluator.parametermanager)
 

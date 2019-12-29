@@ -20,6 +20,7 @@ class GaussNewtonOptimizer(Optimizer):
 
         result.addRunMetadata("target", target)
         result.addRunMetadata("epsilon", self.finite_differencing_epsilon)
+        result.addRunMetadata("differencing", self.differencing)
         result.addRunMetadata("fixedparameters", evaluator.fixedparameters)
         result.addRunMetadata("parametermanager", evaluator.parametermanager)
 

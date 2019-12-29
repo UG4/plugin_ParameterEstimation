@@ -12,7 +12,7 @@ pm.addParameter(DirectParameter("x2", 5.0, 0, 10))
 result = Result("results_newton.pkl")
 evaluator = TestEvaluator(pm, result)
 
-optimizer = GaussNewtonOptimizer(LinearParallelLineSearch(evaluator))
+optimizer = GaussNewtonOptimizer(LinearParallelLineSearch(evaluator), differencing=Optimizer.Differencing.pure_forward)
 
 with evaluator:
     target = evaluator.evaluate([np.array([2.0,3.0])], transform=False, tag="target")[0]
@@ -25,7 +25,7 @@ evaluator.reset()
 result = Result("results_scipy.pkl")
 
 
-optimizer = LevMarOptimizer(LinearParallelLineSearch(evaluator))
+optimizer = GaussNewtonOptimizer(LinearParallelLineSearch(evaluator), differencing=Optimizer.Differencing.forward)
 optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
 
 
