@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 
 class Optimizer(ABC):
 
-    Differencing = Enum("Differencing", "central forward")
+    Differencing = Enum("Differencing", "central forward pure_forward pure_central")
 
     def __init__(self, epsilon, differencing: Differencing):
         self.differencing = differencing
@@ -41,6 +41,11 @@ class Optimizer(ABC):
                 else:
                     changed[i] *= 1+self.finite_differencing_epsilon
                 neededevaluations.append(changed)
+        elif(self.differencing == Optimizer.Differencing.pure_forward):
+            for i in range(len(point)):
+                changed = np.copy(point)
+                changed[i] += self.finite_differencing_epsilon
+                neededevaluations.append(changed)
         elif (self.differencing == Optimizer.Differencing.central):
             for i in range(len(point)):
                 changedPos = np.copy(point)
@@ -51,6 +56,14 @@ class Optimizer(ABC):
                 else:
                     changedNeg[i] *= 1-self.finite_differencing_epsilon
                     changedPos[i] *= 1+self.finite_differencing_epsilon
+                neededevaluations.append(changedPos)
+                neededevaluations.append(changedNeg)        
+        elif (self.differencing == Optimizer.Differencing.pure_central):
+            for i in range(len(point)):
+                changedPos = np.copy(point)
+                changedNeg = np.copy(point)
+                changedNeg[i] -= self.finite_differencing_epsilon
+                changedPos[i] += self.finite_differencing_epsilon
                 neededevaluations.append(changedPos)
                 neededevaluations.append(changedNeg)
 
@@ -75,11 +88,15 @@ class Optimizer(ABC):
                     column = (results[i+1]-undisturbed)/(self.finite_differencing_epsilon)
                 else:  
                     column = (results[i+1]-undisturbed)/(self.finite_differencing_epsilon*point[i])
+            elif (self.differencing == Optimizer.Differencing.pure_forward):
+                column = (results[i+1]-undisturbed)/(self.finite_differencing_epsilon)
             elif (self.differencing == Optimizer.Differencing.central):
                 if point[i] == 0:
                     column = (results[2*i+1]-results[2*i+2])/(2*self.finite_differencing_epsilon)
                 else:
-                    column = (results[2*i+1]-results[2*i+2])/(2*self.finite_differencing_epsilon*point[i])
+                    column = (results[2*i+1]-results[2*i+2])/(2*self.finite_differencing_epsilon*point[i])            
+            elif (self.differencing == Optimizer.Differencing.pure_central):
+                column = (results[2*i+1]-results[2*i+2])/(2*self.finite_differencing_epsilon)
             jacobi.append(column)
         
         return (np.array(jacobi).transpose(), evaluations[0])

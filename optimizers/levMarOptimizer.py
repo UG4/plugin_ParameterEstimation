@@ -5,7 +5,7 @@ from scipy import stats
 
 class LevMarOptimizer(Optimizer):
         
-    def __init__(self, linesearchmethod: LineSearch, maxiterations = 15, initial_lam = 1, reduction_lam=0.8, epsilon=np.sqrt(np.finfo(np.float).eps), minreduction=1e-4,max_error_ratio=(0.05,0.95), differencing=Optimizer.Differencing.forward):
+    def __init__(self, linesearchmethod: LineSearch, maxiterations = 15, initial_lam = 1, reduction_lam=0.8, epsilon=1e-4, minreduction=1e-4,max_error_ratio=(0.05,0.95), differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
         self.linesearchmethod = linesearchmethod
         self.maxiterations = maxiterations
@@ -21,6 +21,7 @@ class LevMarOptimizer(Optimizer):
         evaluator.resultobj = result    
 
         result.addRunMetadata("target", target)
+        result.addRunMetadata("epsilon", self.finite_differencing_epsilon)
         result.addRunMetadata("fixedparameters", evaluator.fixedparameters)
         result.addRunMetadata("parametermanager", evaluator.parametermanager)
 

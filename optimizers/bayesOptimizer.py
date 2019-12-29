@@ -6,7 +6,7 @@ import skopt
 
 class BayesOptimizer(Optimizer):
 
-    def __init__(self, parametermanager: ParameterManager, epsilon=np.sqrt(np.finfo(np.float).eps), minreduction=1e-4, max_iterations=20):
+    def __init__(self, parametermanager: ParameterManager, epsilon=1e-4, minreduction=1e-4, max_iterations=20):
         super().__init__(epsilon, Optimizer.Differencing.forward)
         self.parametermanager = parametermanager
         self.minreduction = minreduction
