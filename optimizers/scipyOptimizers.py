@@ -137,6 +137,8 @@ class ScipyMinimizeOptimizer(Optimizer):
             measurement = evaluation.getNumpyArrayLike(target)
             r = measurement-targetdata
             S = 0.5*r.dot(r)
+
+            result.log("\t cost function is " + str(S))
             
             result.addMetric("parameters", x)
             result.addMetric("residualnorm",S)
