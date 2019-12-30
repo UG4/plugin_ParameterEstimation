@@ -190,6 +190,9 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
 
         dimension = reader.read_int()
 
+        if dimension not in [2,3]:
+            return ErroredEvaluation(parameters, "Error parsing dimension.", evaluation_id, runtime)
+
         while reader.readable:
             status = reader.read_char()
             if status == 1:
