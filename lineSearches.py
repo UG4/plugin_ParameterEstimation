@@ -51,6 +51,7 @@ class LinearParallelLineSearch(LineSearch):
         result.addRunMetadata("ls_parallel_evaluations", self.parallel_evaluations)
 
         while True:
+            l += 1
             alphas = np.linspace(low, top, num=self.parallel_evaluations)
             evaluations = []
             for i in range(self.parallel_evaluations):           
@@ -120,7 +121,7 @@ class LinearParallelLineSearch(LineSearch):
             
             lowerbound = 0.5*r.dot(r) + self.c * overall_minalpha * grad.transpose().dot(stepdirection)
             result.log("\t ["+str(l)+"]: min_alpha = " + str(overall_minalpha) + ", next interval = [" + str(next_low) + ", " + str(next_top) + "], new residualnorm: " + str(overall_minnorm) + ", wolfe lower bound: " + str(lowerbound))
-            l += 1
+            
 
             if((overall_minnorm < lowerbound and not continue_override)):
                 result.addMetric("alpha", overall_minalpha)
