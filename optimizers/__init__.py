@@ -4,3 +4,4 @@ from .bayesOptimizer import *
 from .scipyOptimizers import *
 from .mmaOptimizer import *
 from .levMarOptimizer import *
+from .gradDescOptimizer import *

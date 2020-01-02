@@ -3,7 +3,7 @@ from UGParameterEstimator import LineSearch, Result
 import numpy as np
 from scipy import stats
 
-class GaussNewtonOptimizer(Optimizer):
+class GradientDescentOptimizer(Optimizer):
         
     def __init__(self, linesearchmethod: LineSearch, maxiterations = 15, epsilon=1e-3, minreduction=1e-4,max_error_ratio=(0.05,0.95), differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
@@ -74,41 +74,14 @@ class GaussNewtonOptimizer(Optimizer):
             result.log("[" + str(i) + "]: x=" + str(guess) + ", residual norm S=" + str(S))
           
             # calculate Gauss-Newton step direction (p. 40)
-            Q1, R1 = np.linalg.qr(V, mode='reduced')
-            w = Q1.transpose().dot(r)
-            delta = -np.linalg.solve(R1, w)
+            
+            delta = -V.transpose().dot(r)
 
             result.log("stepdirection is " + str(delta))
-
-            # approximation of the hessian (X^T * X)^-1 = (R1^T * R1)^-1
-            hessian = np.linalg.inv(np.matmul(np.transpose(R1), R1))
-            covariance_matrix = variance*hessian
-            
-            result.addMetric("covariance", covariance_matrix)
-            result.addMetric("hessian", hessian)
-
-            # construct correlation matrix (see p. 22 of Bates/Watts)
-            R1inv = np.linalg.inv(R1)
-            Dinv = np.diag(1/np.sqrt(np.diag(hessian)))
-            L = np.matmul(Dinv,R1inv)
-            C = np.matmul(L,np.transpose(L))
-            result.addMetric("correlation", C)       
-
-            # calculate standard error for the parameters (p.21)
-            s = np.sqrt(variance)
-            errors = s*np.linalg.norm(R1inv, axis=1)
-            result.addMetric("errors", errors)
-
-            if self.max_error_ratio is not None:
-                # calculate confidence interval using the errors
-                confidenceinterval = stats.t.ppf((1+self.max_error_ratio[1])/2, dof)*errors
-                result.addMetric("confidenceinterval", confidenceinterval)
-
-
-            # cancel the optimization when the reduction of the norm of the residuals is below the threshhold and 
-            # the confidence of the calibrated parameters is sufficiently low
-            if(S/first_S < self.minreduction and (self.max_error_ratio is None or np.max(np.divide(confidenceinterval, guess)) < self.max_error_ratio[0])):
-                result.log("-- Newton method converged. --")
+  
+            # cancel the optimization when the reduction of the norm of the residuals is below the threshhold
+            if S/first_S < self.minreduction:
+                result.log("-- Gradient descent method converged. --")
                 result.commitIteration()
                 break
             
@@ -116,7 +89,7 @@ class GaussNewtonOptimizer(Optimizer):
             nextguess = self.linesearchmethod.doLineSearch(delta, guess, target, V, r, result)[0]
 
             if(nextguess is None):
-                result.log("-- Newton method did not converge. --")
+                result.log("-- Gradient descent method did not converge. --")
                 result.commitIteration()
                 result.log(evaluator.getStatistics())
                 result.save()
@@ -128,7 +101,7 @@ class GaussNewtonOptimizer(Optimizer):
             last_S = S
 
         if(i == self.maxiterations-1):
-            result.log("-- Newton method did not converge. --")
+            result.log("-- Gradient descent method did not converge. --")
         
         result.log(evaluator.getStatistics())
         result.save()

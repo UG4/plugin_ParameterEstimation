@@ -41,7 +41,7 @@ class TestEvaluator(Evaluator):
 
             for x in [1,2,3]:                
 
-                entry.append([transformed[0]*math.pow(x,2), 5*transformed[1]*x, math.pow(2,transformed[1])])
+                entry.append([transformed[0]*math.pow(x,2), 5*transformed[1]*x+transformed[0]*transformed[1], math.pow(2,transformed[1])])
 
             data = FreeSurfaceTimeDependentEvaluation(entry,[1,2,3], [1,2,3], 2, self.id, transformed)
             self.id += 1

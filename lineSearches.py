@@ -94,7 +94,7 @@ class LinearParallelLineSearch(LineSearch):
                 
                 if l == self.max_iterations:                
                     result.addMetric("lineSearchAlphas", all_alphas)
-                    return None
+                    return None, None
                 else:
                     low = 0
                     top = top/self.parallel_evaluations
@@ -126,15 +126,16 @@ class LinearParallelLineSearch(LineSearch):
             if((overall_minnorm < lowerbound and not continue_override)):
                 result.addMetric("alpha", overall_minalpha)
                 result.addMetric("lineSearchAlphas", all_alphas)
-                return guess+overall_minalpha*stepdirection
+                return guess+overall_minalpha*stepdirection, overall_minnorm
 
             if l == self.max_iterations:
                                 
                 result.addMetric("lineSearchAlphas", all_alphas)
                 if overall_minnorm < lowerbound:
                     result.addMetric("alpha", overall_minalpha)
-                    return guess+overall_minalpha*stepdirection
-                return None
+                    return guess+overall_minalpha*stepdirection, overall_minnorm
+
+                return None, None
 
             low = next_low
             top = next_top            
@@ -207,7 +208,7 @@ class LogarithmicParallelLineSearch(LineSearch):
                 if l == self.max_iterations:
 
                     result.addMetric("lineSearchAlphas", all_alphas)
-                    return None
+                    return None, None
                 else:
                     highest_power -= self.size
                     continue
@@ -219,10 +220,10 @@ class LogarithmicParallelLineSearch(LineSearch):
             if minnorm < lowerbound and minindex != 0:          
                 result.addMetric("alpha", minindex_alpha)
                 result.addMetric("lineSearchAlphas", all_alphas)
-                return guess+minindex_alpha*stepdirection
+                return guess+minindex_alpha*stepdirection, minnorm
             elif l == self.max_iterations:
                 result.addMetric("lineSearchAlphas", all_alphas)
-                return None
+                return None, None
             
             highest_power -= self.size
             
@@ -246,7 +247,7 @@ class BacktrackingLineSearch(LineSearch):
                 nextevaluation = self.evaluator.evaluate([nextguess], True, "linesearch")
 
             if nextevaluation is None or isinstance(nextevaluation, ErroredEvaluation):
-                return None
+                return None, None
             
             nextfunctionvalue = self.measurementToNumpyArrayConverter(nextevaluation, target)[0]
 
@@ -262,8 +263,8 @@ class BacktrackingLineSearch(LineSearch):
             result.addMetric("alpha",alpha)
 
             if(nextresidualnorm <= lowerbound):
-                return nextguess
+                return nextguess, nextresidualnorm
             alpha = alpha * self.rho
 
             if(l == self.max_iterations):
-                return None
+                return None, None

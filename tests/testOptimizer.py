@@ -12,7 +12,7 @@ pm.addParameter(DirectParameter("x2", 5.0, 0, 10))
 result = Result("results_newton.pkl")
 evaluator = TestEvaluator(pm, result)
 
-optimizer = GaussNewtonOptimizer(LinearParallelLineSearch(evaluator), differencing=Optimizer.Differencing.pure_forward)
+optimizer = LevMarOptimizer(LinearParallelLineSearch(evaluator, 1))
 
 with evaluator:
     target = evaluator.evaluate([np.array([2.0,3.0])], transform=False, tag="target")[0]
@@ -22,20 +22,21 @@ result = optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
 print(evaluator)
 evaluator.reset()
 
-result = Result("results_scipy.pkl")
+optimizer = GaussNewtonOptimizer(LinearParallelLineSearch(evaluator, 1))
 
+with evaluator:
+    target = evaluator.evaluate([np.array([2.0,3.0])], transform=False, tag="target")[0]
 
-optimizer = GaussNewtonOptimizer(LinearParallelLineSearch(evaluator), differencing=Optimizer.Differencing.forward)
-optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
-
+result = optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
 
 print(evaluator)
-# evaluator.reset()
-# result = Result("results_scipy.pkl")
+evaluator.reset()
 
-# optimizer = BayesOptimizer(pm)
-# optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
+optimizer = GradientDescentOptimizer(LinearParallelLineSearch(evaluator))
 
+with evaluator:
+    target = evaluator.evaluate([np.array([2.0,3.0])], transform=False, tag="target")[0]
 
-# print(evaluator)
+result = optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
 
+print(evaluator)
