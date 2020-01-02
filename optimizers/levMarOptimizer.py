@@ -5,14 +5,37 @@ from scipy import stats
 
 class LevMarOptimizer(Optimizer):
         
-    def __init__(self, linesearchmethod: LineSearch, maxiterations = 15, initial_lam = 0.8, reduction_lam=0.8, epsilon=1e-3, minreduction=1e-4,max_error_ratio=(0.05,0.95), differencing=Optimizer.Differencing.forward):
+    def __init__(self, linesearchmethod: LineSearch, maxiterations = 15, initial_lam = 0.1, nu=10, epsilon=1e-3, minreduction=1e-4,max_error_ratio=(0.05,0.95), differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
         self.linesearchmethod = linesearchmethod
         self.maxiterations = maxiterations
         self.minreduction = minreduction
         self.max_error_ratio = max_error_ratio
+        self.nu = nu
         self.initial_lam = initial_lam
-        self.reduction_lam = reduction_lam
+
+    def calculateDelta(self, V, r, p, lam):
+        # calculate Lev-Mar step direction  (p.7)
+        A = V.transpose().dot(V)
+        g = V.transpose().dot(r)
+        
+        AStar = np.array_like(A)
+        gStar = np.array_like(g)
+
+        for x in range(p):
+            for y in range(p):
+                AStar[x,y] = A[x,y] / (np.sqrt(A[x,x])*np.sqrt(A[y,y]))
+            gStar[x] = g / np.sqrt(A[x,x])
+
+        M = AStar + lam*np.diag(np.ones(p))
+        Q,R = np.linalg.qr(M)
+        w = Q.transpose().dot(g)
+        deltaStar = -np.linalg.solve(R, w)
+        delta = np.array_like(deltaStar)
+        for x in range(p):
+            delta[x] = deltaStar[x] / np.sqrt(A[x,x])
+
+        return delta
 
     def run(self, evaluator, initial_parameters, target, result = Result()):
 
@@ -26,7 +49,7 @@ class LevMarOptimizer(Optimizer):
         result.addRunMetadata("epsilon", self.finite_differencing_epsilon)
         result.addRunMetadata("differencing", self.differencing.value)
         result.addRunMetadata("lambda_init", self.initial_lam)
-        result.addRunMetadata("lambda_reduction", self.reduction_lam)
+        result.addRunMetadata("nu", self.nu)
         result.addRunMetadata("fixedparameters", evaluator.fixedparameters)
         result.addRunMetadata("parametermanager", evaluator.parametermanager)
 
@@ -78,14 +101,15 @@ class LevMarOptimizer(Optimizer):
 
             result.log("[" + str(i) + "]: x=" + str(guess) + ", residual norm S=" + str(S) + ", lambda=" + str(lam))
           
-            # calculate Lev-Mar step direction (p. 40)
-            H = V.transpose().dot(V)
-            L = H + lam*np.diag(H)
-            Q,R = np.linalg.qr(L)
-            w = Q.transpose().dot(V.transpose().dot(r))
-            delta = -np.linalg.solve(R, w)
+            
+            pointI = guess + self.calculateDelta(V,r,p,lam/self.nu)
+            pointII = guess + self.calculateDelta(V,r,p,lam)
+            
+            evals = evaluator.evaluate([pointI, pointII])
 
             result.log("stepdirection is " + str(delta))
+
+            evals = []
 
             # cancel the optimization when the reduction of the norm of the residuals is below the threshhold
             if (S/first_S < self.minreduction):
