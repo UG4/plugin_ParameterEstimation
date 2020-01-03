@@ -5,12 +5,13 @@ from scipy import stats
 
 class GainedLevMarOptimizer(Optimizer):
         
-    def __init__(self, maxiterations = 15, tau = 0.01, presteps = 5, epsilon=1e-3, minreduction=1e-4, differencing=Optimizer.Differencing.forward):
+    def __init__(self, maxiterations = 15, tau = 0.01, presteps = 5, epsilon=1e-3, minreduction=1e-4, initial_lam = None, differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
         self.maxiterations = maxiterations
         self.minreduction = minreduction
         self.tau = tau
         self.presteps = presteps
+        self.initial_lam = initial_lam
 
     def calculateDelta(self, V, r, p, lam):
 
@@ -71,7 +72,10 @@ class GainedLevMarOptimizer(Optimizer):
             # save the residualnorm S for calculation of the relative reduction
             if i == 0:
                 first_S = S
-                lam = self.tau * np.max(np.diag(V.transpose().dot(V)))
+                H = V.transpose().dot(V)
+                lam = self.tau * np.max(np.diag(H))
+                if self.initial_lam is not None:
+                    lam = self.initial_lam
 
             n = len(targetdata)
             p = len(guess)
