@@ -6,37 +6,37 @@ from skopt.plots import plot_evaluations
 
 
 pm = ParameterManager()
-pm.addParameter(DirectParameter("x1", 1.0, 0, 10))
-pm.addParameter(DirectParameter("x2", 5.0, 0, 10))
+pm.addParameter(DirectParameter("x1", -1.2, -5, 10))
+pm.addParameter(DirectParameter("x2", 1, 0, 10))
 
 result = Result("results_newton.pkl")
 evaluator = TestEvaluator(pm, result)
 
-optimizer = LevMarOptimizer(LinearParallelLineSearch(evaluator, 1))
+optimizer = GainedLevMarOptimizer()
 
 with evaluator:
-    target = evaluator.evaluate([np.array([2.0,3.0])], transform=False, tag="target")[0]
+    target = evaluator.evaluate([np.array([1.0,1.0])], transform=False, tag="target")[0]
 
 result = optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
 
 print(evaluator)
 evaluator.reset()
 
-optimizer = GaussNewtonOptimizer(LinearParallelLineSearch(evaluator, 1))
+# optimizer = GaussNewtonOptimizer(LinearParallelLineSearch(evaluator, 1))
 
-with evaluator:
-    target = evaluator.evaluate([np.array([2.0,3.0])], transform=False, tag="target")[0]
+# with evaluator:
+#     target = evaluator.evaluate([np.array([2.0,3.0])], transform=False, tag="target")[0]
 
-result = optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
+# result = optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
 
-print(evaluator)
-evaluator.reset()
+# print(evaluator)
+# evaluator.reset()
 
-optimizer = GradientDescentOptimizer(LinearParallelLineSearch(evaluator))
+# optimizer = GradientDescentOptimizer(LinearParallelLineSearch(evaluator))
 
-with evaluator:
-    target = evaluator.evaluate([np.array([2.0,3.0])], transform=False, tag="target")[0]
+# with evaluator:
+#     target = evaluator.evaluate([np.array([2.0,3.0])], transform=False, tag="target")[0]
 
-result = optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
+# result = optimizer.run(evaluator, pm.getInitialArray(), target, result=result)
 
-print(evaluator)
+# print(evaluator)

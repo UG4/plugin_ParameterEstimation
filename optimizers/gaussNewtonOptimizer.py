@@ -58,7 +58,7 @@ class GaussNewtonOptimizer(Optimizer):
             dof = n-p
 
             # calculate s^2 = residual mean square / variance estimate (p.6 Bates/Watts)
-            variance = S/dof
+            variance = None if dof == 0 else S/dof
 
             result.addMetric("residuals",r)
             result.addMetric("residualnorm",S)

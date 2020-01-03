@@ -5,12 +5,10 @@ from scipy import stats
 
 class LevMarOptimizer(Optimizer):
         
-    def __init__(self, linesearchmethod: LineSearch, maxiterations = 15, initial_lam = 0.01, nu=10, scaling=False, epsilon=1e-3, minreduction=1e-4,max_error_ratio=(0.05,0.95), differencing=Optimizer.Differencing.forward):
+    def __init__(self, maxiterations = 15, initial_lam = 0.01, nu=10, scaling=False, epsilon=1e-3, minreduction=1e-4, differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
-        self.linesearchmethod = linesearchmethod
         self.maxiterations = maxiterations
         self.minreduction = minreduction
-        self.max_error_ratio = max_error_ratio
         self.nu = nu
         self.initial_lam = initial_lam
         self.scaling = scaling
@@ -32,16 +30,16 @@ class LevMarOptimizer(Optimizer):
                     AStar[x,y] = A[x,y] / (np.sqrt(A[x,x])*np.sqrt(A[y,y]))
                 gStar[x] = g[x] / np.sqrt(A[x,x])
         
-        print(AStar)
         M = AStar + lam*np.diag(np.ones(p))
-        print(M)
         Q,R = np.linalg.qr(M)
         w = Q.transpose().dot(g)
         deltaStar = -np.linalg.solve(R, w)
         delta = np.copy(deltaStar)
+
         if scaling:
             for x in range(p):
                 delta[x] = deltaStar[x] / np.sqrt(A[x,x])
+
         return delta
 
     def run(self, evaluator, initial_parameters, target, result = Result()):
@@ -52,7 +50,6 @@ class LevMarOptimizer(Optimizer):
 
         result.addRunMetadata("target", target)
         result.addRunMetadata("optimizertype", type(self).__name__)
-        result.addRunMetadata("linesearchmethod", type(self.linesearchmethod).__name__)
         result.addRunMetadata("epsilon", self.finite_differencing_epsilon)
         result.addRunMetadata("differencing", self.differencing.value)
         result.addRunMetadata("lambda_init", self.initial_lam)
@@ -64,7 +61,6 @@ class LevMarOptimizer(Optimizer):
 
         targetdata = target.getNumpyArray()
 
-        last_S = -1
         first_S = -1
         lam = self.initial_lam
 
@@ -80,8 +76,6 @@ class LevMarOptimizer(Optimizer):
             V, measurementEvaluation = jacobi_result
             measurement = measurementEvaluation.getNumpyArrayLike(target)
 
-            print(V)
-
             r = measurement-targetdata
 
             S = 0.5*r.dot(r)
@@ -95,7 +89,8 @@ class LevMarOptimizer(Optimizer):
             dof = n-p
 
             # calculate s^2 = residual mean square / variance estimate (p.6 Bates/Watts)
-            variance = S/dof
+
+            variance = None if dof == 0 else S/dof
 
             result.addMetric("residuals",r)
             result.addMetric("residualnorm",S)
@@ -105,41 +100,55 @@ class LevMarOptimizer(Optimizer):
             result.addMetric("measurement", measurement)
             result.addMetric("measurementEvaluation", measurementEvaluation)
 
-            if(last_S != -1):
-                result.addMetric("reduction",S/last_S)
-
             result.log("[" + str(i) + "]: x=" + str(guess) + ", residual norm S=" + str(S) + ", lambda=" + str(lam))
           
-            
             delta_lower_lam = self.calculateDelta(V,r,p,lam/self.nu)
             delta_prev_lam = self.calculateDelta(V,r,p,lam)
             delta_higher_lam = self.calculateDelta(V,r,p,lam*self.nu)
 
-            result.log("["+str(i) + "]\tStarting line search for lam = " + str(lam/self.nu))
-            nextguess_lower_lam, S_lower_lam = self.linesearchmethod.doLineSearch(delta_lower_lam, guess, target, V, r, result)
-            result.log("["+str(i) + "]\tStarting line search for lam = " + str(lam))
-            nextguess_prev_lam, S_prev_lam = self.linesearchmethod.doLineSearch(delta_prev_lam, guess, target, V, r, result)
-            result.log("["+str(i) + "]\tStarting line search for lam = " + str(lam*self.nu))
-            nextguess_higher_lam, S_higher_lam = self.linesearchmethod.doLineSearch(delta_higher_lam, guess, target, V, r, result)
+            evals = evaluator.evaluate([guess+delta_lower_lam, guess+delta_prev_lam, guess+delta_higher_lam])
+            evals = self.measurementToNumpyArrayConverter(evals, target)
 
-            if S_lower_lam is not None and S_lower_lam <= last_S:
+            S_lower_lam = None if evals[0] is None else 0.5*(evals[0]-targetdata).dot(evals[0]-targetdata)
+            S_prev_lam = None if evals[1] is None else 0.5*(evals[1]-targetdata).dot(evals[1]-targetdata)           
+            S_higher_lam = None if evals[2] is None else 0.5*(evals[2]-targetdata).dot(evals[2]-targetdata)
+
+
+            result.log("\t lam = " + str(lam/self.nu) + ": f=" + str(S_lower_lam))
+            result.log("\t lam = " + str(lam) + ": f=" + str(S_prev_lam))
+            result.log("\t lam = " + str(lam*self.nu) + ": f=" + str(S_higher_lam))
+
+            if S_lower_lam is not None and S_lower_lam <= S:
                 lam = lam/self.nu
-                S = S_lower_lam
-                nextguess = nextguess_lower_lam
-            elif S_lower_lam is not None and S_prev_lam is not None and S_lower_lam > last_S and S_prev_lam <= last_S:
-                S = S_prev_lam
-                nextguess = nextguess_prev_lam
-            elif S_higher_lam is not None and S_higher_lam > last_S:
+                new_S = S_lower_lam
+                nextguess = guess+delta_lower_lam
+            elif S_lower_lam is not None and S_prev_lam is not None and S_lower_lam > S and S_prev_lam <= S:
+                new_S = S_prev_lam
+                nextguess = guess+delta_prev_lam
+            elif S_higher_lam is not None and S_higher_lam > S:
                 lam = lam*self.nu
-                S = S_higher_lam
-                nextguess = nextguess_higher_lam                
+                new_S = S_higher_lam
+                nextguess = guess+delta_higher_lam
             else:
-                for z in range(3):
-                    lam = lam*self.nu
-                    delta = self.calculateDelta(V,r,p,lam)
-                    result.log("["+str(i) + "]\tStarting line search for lam = " + str(lam))
-                    nextguess, S = self.linesearchmethod.doLineSearch(delta, guess, target, V, r, result)
-                    if S is not None and S < last_S:
+                points = []
+                for z in range(5):
+                    new_lam = lam*self.nu**z
+                    delta = self.calculateDelta(V,r,p,new_lam)
+                    points.append(guess + delta)
+
+                evals = evaluator.evaluate(points)
+                evals = self.measurementToNumpyArrayConverter(evals, target)
+
+                costs = [None if x is None else 0.5*(x-targetdata).dot(x-targetdata) for x in evals]
+
+                for z in range(5):
+                    result.log("\t lam = " + str(lam*self.nu**z) + ": f=" + str(costs[z]))
+
+                for z in range(5):
+                    if costs[z] < S:
+                        lam = lam*self.nu**z
+                        new_S = costs[z]
+                        nextguess = points[z]
                         break
                 else:
                     result.log("-- Levenberg-Marquardt method did not converge. --")
@@ -148,10 +157,13 @@ class LevMarOptimizer(Optimizer):
                     result.save()
                     return result
 
-            result.log("["+str(i) + "]\t best lam was = " + str(lam) + " with f=" + str(S))
+            result.log("["+str(i) + "] best lam was = " + str(lam) + " with f=" + str(new_S))
+            
+            result.addMetric("residualnorm_new", new_S)
+            result.addMetric("reduction", new_S/S)
 
             # cancel the optimization when the reduction of the norm of the residuals is below the threshhold
-            if (S/first_S < self.minreduction):
+            if (new_S/first_S < self.minreduction):
                 result.log("-- Levenberg-Marquardt method converged. --")
                 result.commitIteration()
                 break
@@ -159,7 +171,6 @@ class LevMarOptimizer(Optimizer):
             result.commitIteration()
 
             guess = nextguess
-            last_S = S
 
         if(i == self.maxiterations-1):
             result.log("-- Levenberg-Marquardt method did not converge. --")
