@@ -32,7 +32,9 @@ class LevMarOptimizer(Optimizer):
                     AStar[x,y] = A[x,y] / (np.sqrt(A[x,x])*np.sqrt(A[y,y]))
                 gStar[x] = g[x] / np.sqrt(A[x,x])
         
+        print(AStar)
         M = AStar + lam*np.diag(np.ones(p))
+        print(M)
         Q,R = np.linalg.qr(M)
         w = Q.transpose().dot(g)
         deltaStar = -np.linalg.solve(R, w)
@@ -130,11 +132,12 @@ class LevMarOptimizer(Optimizer):
             elif S_higher_lam is not None and S_higher_lam > last_S:
                 lam = lam*self.nu
                 S = S_higher_lam
-                nextguess = nextguess_higher_lam
+                nextguess = nextguess_higher_lam                
             else:
                 for z in range(3):
                     lam = lam*self.nu
                     delta = self.calculateDelta(V,r,p,lam)
+                    result.log("["+str(i) + "]\tStarting line search for lam = " + str(lam))
                     nextguess, S = self.linesearchmethod.doLineSearch(delta, guess, target, V, r, result)
                     if S is not None and S < last_S:
                         break
@@ -145,6 +148,7 @@ class LevMarOptimizer(Optimizer):
                     result.save()
                     return result
 
+            result.log("["+str(i) + "]\t best lam was = " + str(lam) + " with f=" + str(S))
 
             # cancel the optimization when the reduction of the norm of the residuals is below the threshhold
             if (S/first_S < self.minreduction):

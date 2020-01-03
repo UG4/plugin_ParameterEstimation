@@ -99,7 +99,7 @@ class FreeSurfaceEquilibriumEvaluation(FreeSurfaceEvaluation):
         return cls(data_reformatted, seriesformat.locations, dim, seriesformat.times[0])
 
     @staticmethod
-    def writePlots(series, filename, yaxislabel="$m(l,\\vec{\\beta})$ {[m]}"):
+    def writePlots(series, filename, yaxislabel="$m(l,t,\\vec{\\theta})$ {[m]}"):
 
         plot = ""
         plot += "\t\\begin{tikzpicture}\n"
@@ -458,7 +458,7 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
         plot += "\t\t\\begin{axis}[\n"                    
         plot += "	xlabel={Ort $l$ {[m]}},\n"     
         plot += "	width=10cm,\n"
-        plot += "	ylabel={$m(l,t,\\vec{\\theta})$ {[m]}}},\n"
+        plot += "	ylabel={$m(l,t,\\vec{\\theta})$ {[m]}},\n"
         plot += "	legend style={\n"
         plot += "		anchor=north west,at={(axis description cs:1.01,1)}} ]\n"
         

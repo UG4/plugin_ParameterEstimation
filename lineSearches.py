@@ -216,7 +216,8 @@ class LogarithmicParallelLineSearch(LineSearch):
             minindex_alpha = alphas[minindex]
 
             lowerbound = 0.5*r.dot(r) + self.c * minindex_alpha * grad.transpose().dot(stepdirection)
-
+            result.log("\t ["+str(l)+"]: min_alpha = " + str(minindex_alpha) + ", with cost: " + str(minnorm) + ", wolfe lower bound: " + str(lowerbound))
+            
             if minnorm < lowerbound and minindex != 0:          
                 result.addMetric("alpha", minindex_alpha)
                 result.addMetric("lineSearchAlphas", all_alphas)

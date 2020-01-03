@@ -334,3 +334,29 @@ class Result:
         with open(filename,"rb") as f:
             result.iterations = pickle.load(f)
         return result
+
+    @staticmethod
+    def plotMultipleRuns(resultnames, outputfilename):
+
+        with open(outputfilename, "w") as f:
+            f.write("\t\\begin{tikzpicture}[scale=0.8]\n")
+            f.write("	\\begin{axis}[\n")
+            f.write("	xlabel=Iteration,\n")
+            f.write("	ylabel=$f$,\n")
+            f.write("	legend style={\n")
+            f.write("		at={(0,0)},\n")
+            f.write("		anchor=north,at={(axis description cs:0.5,-0.18)}}]\n")
+
+            for resultfilename in resultnames:
+                result = Result.load(resultfilename)
+            
+                f.write("\t\t\\addplot [thick]\n")
+                f.write("\t\t table [x={it}, y={f}]{ \n")
+                f.write("it\t f\n")
+
+                for t in range(result.iterationCount):
+                    f.write(str(t) + "\t" + str(result.iterations[t]["residualnorm"]) + "\n")
+                f.write("};\n")
+            
+            f.write("	\\end{axis}\n")
+            f.write("	\\end{tikzpicture}\n")
