@@ -125,7 +125,7 @@ class LevMarOptimizer(Optimizer):
             elif S_lower_lam is not None and S_prev_lam is not None and S_lower_lam > S and S_prev_lam <= S:
                 new_S = S_prev_lam
                 nextguess = guess+delta_prev_lam
-            elif S_higher_lam is not None and S_higher_lam > S:
+            elif S_higher_lam is not None and S_higher_lam < S:
                 lam = lam*self.nu
                 new_S = S_higher_lam
                 nextguess = guess+delta_higher_lam
@@ -145,7 +145,7 @@ class LevMarOptimizer(Optimizer):
                     result.log("\t lam = " + str(lam*self.nu**z) + ": f=" + str(costs[z]))
 
                 for z in range(5):
-                    if costs[z] < S:
+                    if costs[z] is not None and costs[z] < S:
                         lam = lam*self.nu**z
                         new_S = costs[z]
                         nextguess = points[z]
