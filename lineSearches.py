@@ -107,16 +107,12 @@ class LinearParallelLineSearch(LineSearch):
                 continue_override = True
                 next_low = top
                 next_top = top + (top-low)
-            elif minindex == 0:
-                if low == 0:
-                    continue_override = True
-                    next_low = 0
-                    next_top = top/self.parallel_evaluations
-                else:
-                    next_low = max(0, low - (top-low)/2)
-                    next_top = next_low + (top-low)/2
+            elif minindex == 0 and low == 0:
+                continue_override = True
+                next_low = 0
+                next_top = top/self.parallel_evaluations
             else:
-                next_low = minindex_alpha - (top-low)/4
+                next_low = max(0, minindex_alpha - (top-low)/4)
                 next_top = minindex_alpha + (top-low)/4
             
             lowerbound = 0.5*r.dot(r) + self.c * overall_minalpha * grad.transpose().dot(stepdirection)
