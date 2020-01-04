@@ -219,6 +219,10 @@ class LogarithmicParallelLineSearch(LineSearch):
                 result.addMetric("lineSearchAlphas", all_alphas)
                 return guess+minindex_alpha*stepdirection, minnorm
             elif l == self.max_iterations:
+                if minnorm < lowerbound:
+                    result.addMetric("alpha", minindex_alpha)
+                    result.addMetric("lineSearchAlphas", all_alphas)
+                    return guess+minindex_alpha*stepdirection, minnorm
                 result.addMetric("lineSearchAlphas", all_alphas)
                 return None, None
             
