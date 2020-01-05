@@ -12,7 +12,7 @@ pm.addParameter(DirectParameter("x2", 1, 0, 10))
 result = Result("results_newton.pkl")
 evaluator = TestEvaluator(pm, result)
 
-optimizer = GainedLevMarOptimizer()
+optimizer = LevMarOptimizer()
 
 with evaluator:
     target = evaluator.evaluate([np.array([1.0,1.0])], transform=False, tag="target")[0]

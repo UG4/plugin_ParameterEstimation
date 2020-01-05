@@ -5,13 +5,15 @@ from scipy import stats
 
 class LevMarOptimizer(Optimizer):
         
-    def __init__(self, maxiterations = 15, initial_lam = 0.01, nu=10, scaling=False, epsilon=1e-3, minreduction=1e-4, differencing=Optimizer.Differencing.forward):
+    def __init__(self, maxiterations = 15, initial_lam = 0.01, nu=10, P=10, P_iteration_count=3,scaling=False, epsilon=1e-3, minreduction=1e-4, differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
         self.maxiterations = maxiterations
         self.minreduction = minreduction
         self.nu = nu
         self.initial_lam = initial_lam
         self.scaling = scaling
+        self.P = P
+        self.P_iteration_count = P_iteration_count
 
     def calculateDelta(self, V, r, p, lam):
 
@@ -114,6 +116,7 @@ class LevMarOptimizer(Optimizer):
             S_higher_lam = None if evalvecs[2] is None else 0.5*(evalvecs[2]-targetdata).dot(evalvecs[2]-targetdata)
 
 
+            found = False
             if S_lower_lam is None:
                 result.log("\t lam = " + str(lam/self.nu) + ": " + evals[0].reason)
             else:
@@ -141,30 +144,32 @@ class LevMarOptimizer(Optimizer):
                 new_S = S_higher_lam
                 nextguess = guess+delta_higher_lam
             else:
-                points = []
-                for z in range(5):
-                    new_lam = lam*self.nu**z
-                    delta = self.calculateDelta(V,r,p,new_lam)
-                    points.append(guess + delta)
+                for zl in range(self.P_iteration_count):
+                    points = []
+                    for z in range(self.P):
+                        new_lam = lam*self.nu**(zl*self.P+z)
+                        delta = self.calculateDelta(V,r,p,new_lam)
+                        points.append(guess + delta)
 
-                evals = evaluator.evaluate(points)
-                evalvecs = self.measurementToNumpyArrayConverter(evals, target)
+                    evals = evaluator.evaluate(points)
+                    evalvecs = self.measurementToNumpyArrayConverter(evals, target)
 
-                costs = [None if x is None else 0.5*(x-targetdata).dot(x-targetdata) for x in evalvecs]
+                    costs = [None if x is None else 0.5*(x-targetdata).dot(x-targetdata) for x in evalvecs]
 
-                for z in range(5):
-                    if costs[z] is None:
-                        result.log("\t lam = " + str(lam*self.nu**z) + ": " + evals[z].reason)
-                    else:
-                        result.log("\t lam = " + str(lam*self.nu**z) + ": f=" + str(costs[z]))
-
-                for z in range(5):
-                    if costs[z] is not None and costs[z] < S:
-                        lam = lam*self.nu**z
-                        new_S = costs[z]
-                        nextguess = points[z]
+                    for z in range(self.P):
+                        if costs[z] is None:
+                            result.log("\t lam = " + str(lam*self.nu**z) + ": " + evals[z].reason)
+                        else:
+                            result.log("\t lam = " + str(lam*self.nu**z) + ": f=" + str(costs[z]))
+                    for z in range(self.P):
+                        if costs[z] is not None and costs[z] < S:
+                            lam = lam*self.nu**z
+                            new_S = costs[z]
+                            nextguess = points[z]
+                            found = True
+                    if found:
                         break
-                else:
+                if not found:
                     result.log("-- Levenberg-Marquardt method did not converge. --")
                     result.commitIteration()
                     result.log(evaluator.getStatistics())
