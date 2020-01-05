@@ -74,11 +74,17 @@ class Optimizer(ABC):
             evaluations = evaluator.evaluate(neededevaluations, True, "jacobi-matrix")
 
         result.log("jacobi matrix calculated. evaluations:")
+        
+        for ev in evaluations:
+            if isinstance(ev, ErroredEvaluation):
+                result.log("\tid=" + str(ev.eval_id) + ", " + str(ev.reason))
+            else:
+                result.log("\tid=" + str(ev.eval_id) + ", timeCount=" + str(ev.timeCount))
+
         for ev in evaluations:
             if isinstance(ev, ErroredEvaluation):
                 # At least one measurement failed
                 return None
-            result.log("\tid=" + str(ev.eval_id) + ", timeCount=" + str(ev.timeCount))
             
         # get the numpy arrays for the evaluation results
         results = self.measurementToNumpyArrayConverter(evaluations, target)

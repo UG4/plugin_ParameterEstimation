@@ -1,5 +1,5 @@
 from .optimizer import Optimizer
-from UGParameterEstimator import LineSearch, Result
+from UGParameterEstimator import LineSearch, Result, ErroredEvaluation
 import numpy as np
 from scipy import stats
 
@@ -108,8 +108,6 @@ class GainedLevMarOptimizer(Optimizer):
                 deltas.append(self.calculateDelta(V, r, p, new_lam))
                 points.append(guess + deltas[-1])
 
-
-
             evals = evaluator.evaluate(points)
             evalvecs = self.measurementToNumpyArrayConverter(evals, target)
 
@@ -118,10 +116,12 @@ class GainedLevMarOptimizer(Optimizer):
             costs = [None if x is None else 0.5*(x-targetdata).dot(x-targetdata) for x in evalvecs]
             gainratios = [self.calculateGainRatio(S, costs[i], deltas[i], lambdas[i], g) for i in range(self.presteps+1)]
 
-            print(lambdas)
-            print(nus)
-            print(costs)
-            print(gainratios)
+            for z in range(self.presteps+1):
+                if isinstance(evals[z], ErroredEvaluation):
+                    result.log("\t lam=" + str(lambdas[z]) + ", nu=" + str(nus[z]) + ": " + evals[z].reason)
+                else:
+                    result.log("\t lam=" + str(lambdas[z]) + ", nu=" + str(nus[z]) + ": f=" + str(costs[z]) + ", new gainration=" + str(gainratios[z]))
+
 
             for z in range(self.presteps+1):
                 if gainratios[z] > 0:   # step acceptable
