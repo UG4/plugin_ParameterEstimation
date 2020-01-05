@@ -107,22 +107,33 @@ class LevMarOptimizer(Optimizer):
             delta_higher_lam = self.calculateDelta(V,r,p,lam*self.nu)
 
             evals = evaluator.evaluate([guess+delta_lower_lam, guess+delta_prev_lam, guess+delta_higher_lam])
-            evals = self.measurementToNumpyArrayConverter(evals, target)
+            evalvecs = self.measurementToNumpyArrayConverter(evals, target)
 
-            S_lower_lam = None if evals[0] is None else 0.5*(evals[0]-targetdata).dot(evals[0]-targetdata)
-            S_prev_lam = None if evals[1] is None else 0.5*(evals[1]-targetdata).dot(evals[1]-targetdata)           
-            S_higher_lam = None if evals[2] is None else 0.5*(evals[2]-targetdata).dot(evals[2]-targetdata)
+            S_lower_lam = None if evalvecs[0] is None else 0.5*(evalvecs[0]-targetdata).dot(evalvecs[0]-targetdata)
+            S_prev_lam = None if evalvecs[1] is None else 0.5*(evalvecs[1]-targetdata).dot(evalvecs[1]-targetdata)           
+            S_higher_lam = None if evalvecs[2] is None else 0.5*(evalvecs[2]-targetdata).dot(evalvecs[2]-targetdata)
 
 
-            result.log("\t lam = " + str(lam/self.nu) + ": f=" + str(S_lower_lam))
-            result.log("\t lam = " + str(lam) + ": f=" + str(S_prev_lam))
-            result.log("\t lam = " + str(lam*self.nu) + ": f=" + str(S_higher_lam))
+            if S_lower_lam is None:
+                result.log("\t lam = " + str(lam/self.nu) + ": " + evals[0].reason)
+            else:
+                result.log("\t lam = " + str(lam/self.nu) + ": f=" + str(S_lower_lam))
+
+            if S_prev_lam is None:
+                result.log("\t lam = " + str(lam) + ": " + evals[1].reason)
+            else:
+                result.log("\t lam = " + str(lam) + ": f=" + str(S_prev_lam))
+
+            if S_higher_lam is None:
+                result.log("\t lam = " + str(lam*self.nu) + ": " + evals[2].reason)
+            else:  
+                result.log("\t lam = " + str(lam*self.nu) + ": f=" + str(S_higher_lam))
 
             if S_lower_lam is not None and S_lower_lam <= S:
                 lam = lam/self.nu
                 new_S = S_lower_lam
                 nextguess = guess+delta_lower_lam
-            elif S_lower_lam is not None and S_prev_lam is not None and S_lower_lam > S and S_prev_lam <= S:
+            elif S_prev_lam is not None and S_prev_lam <= S:
                 new_S = S_prev_lam
                 nextguess = guess+delta_prev_lam
             elif S_higher_lam is not None and S_higher_lam < S:
@@ -137,12 +148,15 @@ class LevMarOptimizer(Optimizer):
                     points.append(guess + delta)
 
                 evals = evaluator.evaluate(points)
-                evals = self.measurementToNumpyArrayConverter(evals, target)
+                evalvecs = self.measurementToNumpyArrayConverter(evals, target)
 
-                costs = [None if x is None else 0.5*(x-targetdata).dot(x-targetdata) for x in evals]
+                costs = [None if x is None else 0.5*(x-targetdata).dot(x-targetdata) for x in evalvecs]
 
                 for z in range(5):
-                    result.log("\t lam = " + str(lam*self.nu**z) + ": f=" + str(costs[z]))
+                    if costs[z] is None:
+                        result.log("\t lam = " + str(lam*self.nu**z) + ": " + evals[z].reason)
+                    else:
+                        result.log("\t lam = " + str(lam*self.nu**z) + ": f=" + str(costs[z]))
 
                 for z in range(5):
                     if costs[z] is not None and costs[z] < S:
