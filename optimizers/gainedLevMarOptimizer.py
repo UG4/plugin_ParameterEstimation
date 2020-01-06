@@ -95,6 +95,12 @@ class GainedLevMarOptimizer(Optimizer):
 
             result.log("[" + str(i) + "]: x=" + str(guess) + ", residual norm S=" + str(S) + ", lambda=" + str(lam))
           
+            # cancel the optimization when the reduction of the norm of the residuals is below the threshhold
+            if (S/first_S < self.minreduction):
+                result.log("-- Gained Levenberg-Marquardt method converged. --")
+                result.commitIteration()
+                break
+
             lambdas = [lam]
             nus = [nu]
             deltas = [self.calculateDelta(V, r, p, lam)]
@@ -145,11 +151,7 @@ class GainedLevMarOptimizer(Optimizer):
             result.addMetric("residualnorm_new", new_S)
             result.addMetric("reduction", new_S/S)
 
-            # cancel the optimization when the reduction of the norm of the residuals is below the threshhold
-            if (new_S/first_S < self.minreduction):
-                result.log("-- Gained Levenberg-Marquardt method converged. --")
-                result.commitIteration()
-                break
+            
                         
             result.commitIteration()
 
