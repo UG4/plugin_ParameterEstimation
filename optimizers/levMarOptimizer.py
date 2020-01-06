@@ -178,6 +178,7 @@ class LevMarOptimizer(Optimizer):
 
             result.log("["+str(i) + "] best lam was = " + str(lam) + " with f=" + str(new_S))
             
+            result.addMetric("lambda", lam)
             result.addMetric("residualnorm_new", new_S)
             result.addMetric("reduction", new_S/S)
 

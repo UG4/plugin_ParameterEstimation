@@ -58,7 +58,7 @@ class Result:
                 f.write("\n")
                 i += 1
     
-    def writeLatexTable(self, file, metadata):
+    def writeLatexTable(self, file, metadata, nameoverride=None):
 
         pm = self.metadata["parametermanager"]
         with open(file,"w") as f:
@@ -72,10 +72,13 @@ class Result:
                 f.write("c|")
             f.write("c}\\\\\n")
 
-            f.write("step" + " & ")
+            f.write("Schritt $l$" + " & ")  
             for i in range(len(pm.parameters)):
-                p = pm.parameters[i].name
-                f.write("$\\theta_"+str(i)+"$ (\\verb|"+p+"|) & ")
+                if nameoverride is None:
+                    p = pm.parameters[i].name
+                    f.write("$\\theta_"+str(i)+"$ (\\verb|"+p+"|) & ")
+                else:
+                    f.write("$\\theta_"+str(i)+"$ (" + nameoverride[i] + ") & ")
 
             for i in range(len(metadata)-1):
                 f.write(metadata[i][0]+"&")            
