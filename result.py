@@ -89,12 +89,12 @@ class Result:
                 f.write(str(i) + " & ")
                 for j in range(len(pm.parameters)):
                     entry = pm.parameters[j].getTransformedParameter(iteration["parameters"][j])
-                    f.write("$" + self.getLatexString(entry) + "$"+ " & ")
+                    f.write("$" + Result.getLatexString(entry) + "$"+ " & ")
 
                 for j in range(len(metadata)):
                     p = metadata[j][1]
                     if p in iteration:
-                        f.write("$" + self.getLatexString(iteration[p]) + "$" )
+                        f.write("$" + Result.getLatexString(iteration[p]) + "$" )
                     else:
                         f.write("NaN")
                     if j == len(metadata)-1:
@@ -140,12 +140,12 @@ class Result:
                     error = iteration["errors"][j]
                     if "confidenceinterval" in iteration:
                         interval = iteration["confidenceinterval"][j]
-                        f.write("$" + self.getLatexString(entry) + "\\pm" + self.getLatexString(interval) + "$"+ " & ")
+                        f.write("$" + Result.getLatexString(entry) + "\\pm" + Result.getLatexString(interval) + "$"+ " & ")
                     else:
-                        f.write("$" + self.getLatexString(entry) + "$"+ " & ")
+                        f.write("$" + Result.getLatexString(entry) + "$"+ " & ")
 
                     error = iteration["errors"][j]
-                    f.write("$" + self.getLatexString(error) + "$")
+                    f.write("$" + Result.getLatexString(error) + "$")
 
                     if j == len(pm.parameters)-1:
                         f.write("\\\\\n")
@@ -171,7 +171,7 @@ class Result:
                 for x in range(np.shape(data)[0]):
                     for y in range(np.shape(data)[1]):
 
-                        f.write(self.getLatexString(data[x][y]))
+                        f.write(Result.getLatexString(data[x][y]))
 
                         if(y == np.shape(data)[1]-1):
                             f.write("\\\\\n")
@@ -180,7 +180,7 @@ class Result:
                 
                 f.write("\\end{pmatrix}$$\n")
 
-    def writeSensitivityPlots(self, filename, iteration, extended=True):
+    def writeSensitivityPlots(self, filename, iteration, extended=True, zlabel=lambda i: "$\\frac{\\partial \\vec{m}}{\delta \\theta_"+ str(i) + "}$ {[m]}"):
 
         pm = self.metadata["parametermanager"]
         if iteration == -1:
@@ -237,10 +237,10 @@ class Result:
                         f.write("\\end{minipage}\\\\\n")  
                         f.write("\\end{center}")
                 else:
-                    partial_series.write3dPlot(filename + "-" + pm.parameters[i].name + ".tex", "$\\frac{\\delta g}{\\delta \\beta_0}$ {[m]}",scale=0.8)
+                    partial_series.write3dPlot(filename + "-" + pm.parameters[i].name + ".tex", zlabel(i), scale=0.8)
             elif isinstance(self.metadata["target"], FreeSurfaceEquilibriumEvaluation):
                 partial_series = FreeSurfaceEquilibriumEvaluation.fromNumpyArray(partial, self.metadata["target"])
-                FreeSurfaceEquilibriumEvaluation.writePlots({"Sensitivity":partial_series}, filename + "-" + pm.parameters[i].name + ".tex", "$\\frac{\\delta m}{\delta \\beta_"+ str(i) + "}$ {[m]}")
+                FreeSurfaceEquilibriumEvaluation.writePlots({"Sensitivity":{"eval":partial_series}}, filename + "-" + pm.parameters[i].name + ".tex", zlabel(i))
                 
     def plotComparison(self, filename, force2d=False):
 
@@ -275,7 +275,8 @@ class Result:
                     f.write("\\end{minipage}\\\\\n")  
                     f.write("\\end{center}")
 
-    def getLatexString(self, number):
+    @staticmethod
+    def getLatexString(number):
         exp = fexp(number)
         man = fman(number)
 
@@ -325,27 +326,28 @@ class Result:
             print(l)
 
     @classmethod
-    def load(cls,filename):
+    def load(cls, filename, printInfo=True):
         result = cls()
-        with open(filename,"rb") as f:
+        with open(filename, "rb") as f:
             result.__dict__.update(pickle.load(f))
+
+        if printInfo:
+            print(result)
+
         return result
     
-    @classmethod
-    def loadLegacy(cls,filename):
-        result = cls()
-        with open(filename,"rb") as f:
-            result.iterations = pickle.load(f)
-        return result
-
     @staticmethod
-    def plotMultipleRuns(resultnames, outputfilename):
+    def plotMultipleRuns(resultnames, outputfilename, log=True, paramnames=None):
 
         with open(outputfilename, "w") as f:
             f.write("\t\\begin{tikzpicture}[scale=0.8]\n")
             f.write("	\\begin{axis}[\n")
             f.write("	xlabel=Iteration,\n")
             f.write("	ylabel=$f$,\n")
+
+            if log:
+                f.write("	ymode=log,\n")
+
             f.write("	legend style={\n")
             f.write("		at={(0,0)},\n")
             f.write("		anchor=north,at={(axis description cs:0.5,-0.18)}}]\n")
@@ -353,13 +355,41 @@ class Result:
             for resultfilename in resultnames:
                 result = Result.load(resultfilename)
             
-                f.write("\t\t\\addplot [thick]\n")
+                f.write("\t\t\\addplot+[thick]\n")
                 f.write("\t\t table [x={it}, y={f}]{ \n")
                 f.write("it\t f\n")
 
                 for t in range(result.iterationCount):
                     f.write(str(t) + "\t" + str(result.iterations[t]["residualnorm"]) + "\n")
                 f.write("};\n")
+
+                legtext = ""
+                pm = result.metadata["parametermanager"]
+                paramcount = len(pm.parameters)
+                for p in range(paramcount):
+                    if paramnames is None:
+                        legtext += "$\\theta^{(1)}_"+ str(p) + "=" + Result.getLatexString(pm.parameters[p].startvalue)+ "$"
+                    else:
+                        legtext += "$" + paramnames[p] + "^{(1)} =" + Result.getLatexString(pm.parameters[p].startvalue) + "$"
+                    if p != paramcount-1:
+                        legtext += ", "
+                f.write("\\addlegendentry{" + legtext + "};\n")
             
             f.write("	\\end{axis}\n")
             f.write("	\\end{tikzpicture}\n")
+
+    def __str__(self):
+        
+        res = "######################################################\n"
+        res += "filename: " + self.filename + "\n"
+        res += "iterationCount: " + str(self.iterationCount)+ "\n"
+        res += "paramcount: " + str(len(self.metadata["parametermanager"].parameters)) + "\n"
+        res += "first res norm: " + str(self.iterations[0]["residualnorm"]) + "\n"
+        res += "last res norm: " + str(self.iterations[self.iterationCount-1]["residualnorm"]) + "\n"
+
+        for k in self.metadata:
+            res += k + ": " + str(self.metadata[k]) + "\n"
+
+        res += "######################################################"
+
+        return res

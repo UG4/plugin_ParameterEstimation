@@ -78,10 +78,12 @@ class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
 class ScipyMinimizeOptimizer(Optimizer):
 
     # opt_method must be one of "L-BFGS-B", "SLSQP" or "TNC"
-    def __init__(self, parametermanager, opt_method="L-BFGS-B", epsilon=1e-4, differencing=Optimizer.Differencing.forward):
+    def __init__(self, parametermanager, opt_method="L-BFGS-B", epsilon=1e-4, callback_root=False, callback_scaling=1, differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
         self.parametermanager = parametermanager
         self.opt_method = opt_method
+        self.callback_root = callback_root
+        self.callback_scaling = callback_scaling
 
     def run(self, evaluator, initial_parameters, target, result = Result()):
 
@@ -152,7 +154,11 @@ class ScipyMinimizeOptimizer(Optimizer):
             last_S[0] = S
 
             # https://stackoverflow.com/a/47443343
-            return S
+
+            if self.callback_root:
+                return self.callback_scaling*np.sqrt(S)
+            else:
+                return self.callback_scaling*S
 
         def scipy_jacobi(x):
             result.log("\tEvaluating jacobi matrix at at x=" + str(x))

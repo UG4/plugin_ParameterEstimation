@@ -5,6 +5,7 @@ import os
 import csv
 import itertools
 import struct
+import subprocess
 
 class FreeSurfaceEvaluation(Evaluation):
 
@@ -225,11 +226,11 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
     def parse(cls, directory, evaluation_id, parameters=None, runtime=None):
         
         filenameBin = os.path.join(directory, str(evaluation_id) + "_measurement.bin")
+        filenameTXT = os.path.join(directory, str(evaluation_id) + "_measurement.txt")
 
         if os.path.isfile(filenameBin):
             return FreeSurfaceTimeDependentEvaluation.parseBinary(filenameBin, evaluation_id, parameters, runtime)
-        elif os.path.isfile(filenameBin): 
-            filenameTXT = os.path.join(directory, str(evaluation_id) + "_measurement.txt")
+        elif os.path.isfile(filenameTXT): 
             return FreeSurfaceTimeDependentEvaluation.parseFromTXT(filenameTXT, evaluation_id, parameters, runtime)
         else:
             return ErroredEvaluation(parameters, "No measurement file found.", evaluation_id, runtime)
@@ -427,7 +428,7 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
         plot += "	width=10cm,\n"
         plot += "	ylabel=Ort $l$ {[m]},\n"
         plot += "   scale=" + str(scale) + ",\n"
-        plot += "	zlabel=]\n"
+        plot += "	zlabel= " + zlabel + "]\n"
         plot += "\t\t\\addplot3 [surf,mesh/ordering=y varies,mesh/rows=" + str(self.locationCount) + "]\n"
         plot += "\t\t table { \n"
         plot += "time\tlocation\t value\n"
@@ -445,7 +446,7 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
             with open(filename, "w") as f:
                 f.write(plot)
             directory = os.path.dirname(filename)
-            os.system("pdflatex -interaction=nonstopmode -output-directory=" + directory + " " + filename)
+            subprocess.run(["pdflatex", "-interaction=nonstopmode", "-output-directory=" + directory,filename], stdout=subprocess.DEVNULL)
 
         return plot
 
