@@ -32,13 +32,13 @@ class Parameter:
 
     def isValidOptimizationSpaceParameter(self, value):
 
-        if self.maximumValue is not None and self.optimizationSpaceUpperBound < value and abs(self.optimizationSpaceUpperBound-value) > np.finfo(float).eps*10:
+        if self.maximumValue is not None and self.optimizationSpaceUpperBound < value:
 
             print("Parameter " + self.name + " out of bounds, " + str(value) + " > " + str(self.optimizationSpaceUpperBound))
 
             return False
 
-        if self.minimumValue is not None and self.optimizationSpaceLowerBound > value and abs(self.optimizationSpaceLowerBound-value) > np.finfo(float).eps*10:
+        if self.minimumValue is not None and self.optimizationSpaceLowerBound > value:
             
             print("Parameter " + self.name + " out of bounds, " + str(value) + " < " + str(self.optimizationSpaceLowerBound))
 

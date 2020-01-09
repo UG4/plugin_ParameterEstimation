@@ -106,6 +106,57 @@ class Result:
 
             f.write("\\end{tabular}")
 
+    def writeSimpleErrorTable(self, file, metadata, nameoverride=None):
+
+        pm = self.metadata["parametermanager"]
+        with open(file,"w") as f:
+            
+            # write table header
+            f.write("\\begin{tabular}{")
+            
+            count = 2*len(pm.parameters) + len(metadata)
+            f.write("c||")
+            for i in range(count-1):
+                f.write("c|")
+            f.write("c}\\\\\n")
+
+            f.write("Schritt $l$" + " & ")  
+            for i in range(len(pm.parameters)):
+                if nameoverride is None:
+                    p = pm.parameters[i].name
+                    f.write("$\\theta_"+str(i)+"$ (\\verb|"+p+"|) & ")
+                else:
+                    f.write("$\\theta_"+str(i)+"$ (" + nameoverride[i] + ") & ")
+                
+                f.write("se($\\theta_" + str(i) + "$) & ")
+
+            for i in range(len(metadata)-1):
+                f.write(metadata[i][0]+"&")            
+            f.write(metadata[-1][0]+"\\\\\hline\n")
+
+            i = 0
+            for iteration in self.iterations:
+                f.write(str(i) + " & ")
+                for j in range(len(pm.parameters)):
+                    entry = pm.parameters[j].getTransformedParameter(iteration["parameters"][j])
+                    f.write("$" + Result.getLatexString(entry) + "$"+ " & ")
+                    error = iteration["errors"][j]
+                    f.write("$" + Result.getLatexString(error) + "$ & ")                    
+
+                for j in range(len(metadata)):
+                    p = metadata[j][1]
+                    if p in iteration:
+                        f.write("$" + Result.getLatexString(iteration[p]) + "$" )
+                    else:
+                        f.write("NaN")
+                    if j == len(metadata)-1:
+                        f.write("\\\\\n")
+                    else:
+                        f.write(" & ")
+                
+                i += 1
+
+            f.write("\\end{tabular}")
     
     def writeErrorTable(self, file, confidence=0.95):
 

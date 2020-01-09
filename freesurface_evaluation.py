@@ -460,6 +460,7 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
         plot += "	xlabel={Ort $l$ {[m]}},\n"     
         plot += "	width=10cm,\n"
         plot += "	ylabel={$m(l,t,\\vec{\\theta})$ {[m]}},\n"
+        plot += "yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=3},"
         plot += "	legend style={\n"
         plot += "		anchor=north west,at={(axis description cs:1.01,1)}} ]\n"
         
@@ -472,7 +473,7 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
             for l in range(self.locationCount):
                 plot += str(self.locations[l]) + "\t" + str(self.data[t][l]) + "\n"
             plot += "};\n"
-            plot += "\\addlegendentry{t=" + str(time) + "};\n"
+            plot += "\\addlegendentry{t=" + str(round(time, 3)) + "};\n"
         plot += "\t\t\\end{axis}\n"
         plot += "\t\\end{tikzpicture}\n"
 
