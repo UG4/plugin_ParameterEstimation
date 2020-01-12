@@ -76,9 +76,9 @@ class Result:
             for i in range(len(pm.parameters)):
                 if nameoverride is None:
                     p = pm.parameters[i].name
-                    f.write("$\\theta_"+str(i)+"$ (\\verb|"+p+"|) & ")
+                    f.write("$\\hat{\\theta}_"+str(i+1)+"^{(l)}$ (\\verb|"+p+"|) & ")
                 else:
-                    f.write("$\\theta_"+str(i)+"$ (" + nameoverride[i] + ") & ")
+                    f.write("$\\hat{\\theta}_"+str(i+1)+"^{(l)}$ (" + nameoverride[i] + ") & ")
 
             for i in range(len(metadata)-1):
                 f.write(metadata[i][0]+"&")            
@@ -86,7 +86,7 @@ class Result:
 
             i = 0
             for iteration in self.iterations:
-                f.write(str(i) + " & ")
+                f.write(str(i+1) + " & ")
                 for j in range(len(pm.parameters)):
                     entry = pm.parameters[j].getTransformedParameter(iteration["parameters"][j])
                     f.write("$" + Result.getLatexString(entry) + "$"+ " & ")
@@ -96,7 +96,7 @@ class Result:
                     if p in iteration:
                         f.write("$" + Result.getLatexString(iteration[p]) + "$" )
                     else:
-                        f.write("NaN")
+                        f.write("--")
                     if j == len(metadata)-1:
                         f.write("\\\\\n")
                     else:
@@ -124,11 +124,11 @@ class Result:
             for i in range(len(pm.parameters)):
                 if nameoverride is None:
                     p = pm.parameters[i].name
-                    f.write("$\\theta_"+str(i)+"$ (\\verb|"+p+"|) & ")
+                    f.write("$\\hat{\\theta}_"+str(i+1)+"^{(l)}$ (\\verb|"+p+"|) & ")
                 else:
-                    f.write("$\\theta_"+str(i)+"$ (" + nameoverride[i] + ") & ")
+                    f.write("$\\hat{\\theta}_"+str(i+1)+"^{(l)}$ (" + nameoverride[i] + ") & ")
                 
-                f.write("se($\\theta_" + str(i) + "$) & ")
+                f.write("se($\\theta_" + str(i+1) + "^{(l)}$) & ")
 
             for i in range(len(metadata)-1):
                 f.write(metadata[i][0]+"&")            
@@ -136,7 +136,7 @@ class Result:
 
             i = 0
             for iteration in self.iterations:
-                f.write(str(i) + " & ")
+                f.write(str(i+1) + " & ")
                 for j in range(len(pm.parameters)):
                     entry = pm.parameters[j].getTransformedParameter(iteration["parameters"][j])
                     f.write("$" + Result.getLatexString(entry) + "$"+ " & ")
@@ -148,7 +148,7 @@ class Result:
                     if p in iteration:
                         f.write("$" + Result.getLatexString(iteration[p]) + "$" )
                     else:
-                        f.write("NaN")
+                        f.write("--")
                     if j == len(metadata)-1:
                         f.write("\\\\\n")
                     else:
@@ -185,7 +185,7 @@ class Result:
 
             i = 0
             for iteration in self.iterations:
-                f.write(str(i) + " & ")
+                f.write(str(i+1) + " & ")
                 for j in range(len(pm.parameters)):
                     entry = pm.parameters[j].getTransformedParameter(iteration["parameters"][j])
                     error = iteration["errors"][j]
@@ -217,7 +217,7 @@ class Result:
 
                 data = self.iterations[i][name]
 
-                f.write("$$" + symbol + "^{(" + str(i) + ")} = \\begin{pmatrix}\n")
+                f.write("$$" + symbol + "^{(" + str(i+1) + ")} = \\begin{pmatrix}\n")
             
                 for x in range(np.shape(data)[0]):
                     for y in range(np.shape(data)[1]):
@@ -231,7 +231,7 @@ class Result:
                 
                 f.write("\\end{pmatrix}$$\n")
 
-    def writeSensitivityPlots(self, filename, iteration, extended=True, zlabel=lambda i: "$\\frac{\\partial \\vec{m}}{\delta \\theta_"+ str(i) + "}$ {[m]}"):
+    def writeSensitivityPlots(self, filename, iteration, extended=True, zlabel=lambda i: "$\\frac{\\partial \\vec{m}}{\delta \\theta_"+ str(i+1) + "}$ {[m]}"):
 
         pm = self.metadata["parametermanager"]
         if iteration == -1:
@@ -288,10 +288,10 @@ class Result:
                         f.write("\\end{minipage}\\\\\n")  
                         f.write("\\end{center}")
                 else:
-                    partial_series.write3dPlot(filename + "-" + pm.parameters[i].name + ".tex", zlabel(i), scale=0.8)
+                    partial_series.write3dPlot(filename + "-" + pm.parameters[i].name.replace("_","-") + ".tex", zlabel(i), scale=0.8)
             elif isinstance(self.metadata["target"], FreeSurfaceEquilibriumEvaluation):
                 partial_series = FreeSurfaceEquilibriumEvaluation.fromNumpyArray(partial, self.metadata["target"])
-                FreeSurfaceEquilibriumEvaluation.writePlots({"Sensitivity":{"eval":partial_series}}, filename + "-" + pm.parameters[i].name + ".tex", zlabel(i))
+                FreeSurfaceEquilibriumEvaluation.writePlots({"Sensitivität":{"eval":partial_series}}, filename + "-" + pm.parameters[i].name.replace("_","-") + ".tex", zlabel(i))
                 
     def plotComparison(self, filename, force2d=False):
 
@@ -328,6 +328,9 @@ class Result:
 
     @staticmethod
     def getLatexString(number):
+
+        if number is None:
+            return "--"
         exp = fexp(number)
         man = fman(number)
 
@@ -391,7 +394,7 @@ class Result:
     def plotMultipleRuns(resultnames, outputfilename, log=True, paramnames=None):
 
         with open(outputfilename, "w") as f:
-            f.write("\t\\begin{tikzpicture}[scale=0.8]\n")
+            f.write("\t\\begin{tikzpicture}[scale=0.9]\n")
             f.write("	\\begin{axis}[\n")
             f.write("	xlabel=Iteration,\n")
             f.write("	ylabel=$f$,\n")
@@ -401,7 +404,7 @@ class Result:
 
             f.write("	legend style={\n")
             f.write("		at={(0,0)},\n")
-            f.write("		anchor=north,at={(axis description cs:0.5,-0.18)}}]\n")
+            f.write("		anchor=north,at={(axis description cs:0.5,-0.3)}}]\n")
 
             for resultfilename in resultnames:
                 result = Result.load(resultfilename)
