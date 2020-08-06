@@ -7,12 +7,17 @@ from math import floor, log10
 from .freesurface_evaluation import FreeSurfaceTimeDependentEvaluation, FreeSurfaceEquilibriumEvaluation
 from datetime import datetime
 
+# helper functions to write numbers in scientific notation
 def fexp(f):
     return int(floor(log10(abs(f)))) if f != 0 else 0
 
 def fman(f):
     return f/10**fexp(f)
 
+# A class containing the result of the calibration operation
+#
+# This class contains all logentries and all data written away during the iterations of the calibration.
+# The data can be saved by calling save() and will be written to a .pkl file.
 class Result:
 
     def __init__(self,filename=None):
@@ -29,6 +34,7 @@ class Result:
     def iterationCount(self):
         return len(self.iterations)
 
+    # writes the iteration data as a simple tab-separated-text file for postprocessing
     def writeTable(self, file, metadata):
 
         pm = self.metadata["parametermanager"]
@@ -58,6 +64,10 @@ class Result:
                 f.write("\n")
                 i += 1
     
+    # writes the iteration data as a latex table.
+    #   file - the name of the file the result should be written to
+    #   metadata - the metadata fields to include in the table as columns, additionally to the parameters
+    #   nameoverride - allows the user to provide better readable names as parameter names
     def writeLatexTable(self, file, metadata, nameoverride=None):
 
         pm = self.metadata["parametermanager"]
