@@ -4,7 +4,7 @@ import pickle
 import copy
 from scipy import stats
 from math import floor, log10
-from .freesurface_evaluation import FreeSurfaceTimeDependentEvaluation, FreeSurfaceEquilibriumEvaluation
+from UGParameterEstimator import FreeSurfaceTimeDependentEvaluation, FreeSurfaceEquilibriumEvaluation
 from datetime import datetime
 
 # helper functions to write numbers in scientific notation
@@ -29,6 +29,10 @@ class Result:
         self.metadata = {}
 
         self.filename = filename
+
+        if filename:
+            directory = os.path.dirname(self.filename)
+            os.makedirs(directory, exist_ok=True)
 
     @property
     def iterationCount(self):
@@ -378,9 +382,8 @@ class Result:
             pickle.dump(self.__dict__,f)
     
     def log(self, text):
-
         logtext = "[" + str(datetime.now()) + "] " + text
-        print(logtext)
+        print(logtext)        
         self.logentries.append(logtext)
         with open(self.filename + "_log","a") as f:
             f.write(logtext + "\n")

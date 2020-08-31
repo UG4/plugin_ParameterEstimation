@@ -11,7 +11,7 @@ class LocalEvaluator(Evaluator):
         self.parametermanager = parametermanager
         self.luafile = luafile
         self.id = 0
-        self.fixedparameters = {"output": "0"}
+        self.fixedparameters = {"output": 0}
         self.fixedparameters.update(fixedparameters)
         self.totalevaluationtime = 0
         self.evaluation_type = evaluation_type

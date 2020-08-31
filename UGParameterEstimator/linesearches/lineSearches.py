@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from abc import ABC, abstractmethod
-from .evaluation import ErroredEvaluation
+from UGParameterEstimator import ErroredEvaluation
 
 class LineSearch(ABC):
 

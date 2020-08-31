@@ -13,7 +13,7 @@ class ClusterEvaluator(Evaluator):
         self.directory = directory
         self.parametermanager = parametermanager
         self.id = 0
-        self.fixedparameters =  {"output": "0"}
+        self.fixedparameters =  {"output": 0}
         self.fixedparameters.update(fixedparameters)
         self.evaluation_type = evaluation_type
         self.parameter_output_adapter = parameter_output_adapter

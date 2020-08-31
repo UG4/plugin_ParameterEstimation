@@ -14,7 +14,7 @@ from matplotlib.figure import Figure
 
 from UGParameterEstimator import Result
 
-class App(QApplication):
+class AnalysisTool(QApplication):
     def __init__(self, sys_argv):
         super(App, self).__init__(sys_argv)
         self.build_ui()
@@ -122,7 +122,7 @@ class App(QApplication):
 
 
 if __name__ == '__main__':
-    app = App(sys.argv)
+    app = AnalysisTool(sys.argv)
     sys.exit(app.exec_())
  
 

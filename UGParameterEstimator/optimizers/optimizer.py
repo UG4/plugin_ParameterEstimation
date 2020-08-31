@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import subprocess
-import skopt
 import numpy as np
 import scipy.optimize
 import os

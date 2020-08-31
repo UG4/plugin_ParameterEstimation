@@ -226,18 +226,18 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
     def parse(cls, directory, evaluation_id, parameters=None, runtime=None):
         
         filenameBin = os.path.join(directory, str(evaluation_id) + "_measurement.bin")
-        filenameTXT = os.path.join(directory, str(evaluation_id) + "_measurement.txt")
+        filenameCSV = os.path.join(directory, str(evaluation_id) + "_measurement.csv")
 
         if os.path.isfile(filenameBin):
             return FreeSurfaceTimeDependentEvaluation.parseBinary(filenameBin, evaluation_id, parameters, runtime)
-        elif os.path.isfile(filenameTXT): 
-            return FreeSurfaceTimeDependentEvaluation.parseFromTXT(filenameTXT, evaluation_id, parameters, runtime)
+        elif os.path.isfile(filenameCSV): 
+            return FreeSurfaceTimeDependentEvaluation.parseFromCSV(filenameCSV, evaluation_id, parameters, runtime)
         else:
             return ErroredEvaluation(parameters, "No measurement file found.", evaluation_id, runtime)
 
 
     @classmethod
-    def parseFromTXT(cls, filename, evaluation_id, parameters=None, runtime=None):
+    def parseFromCSV(cls, filename, evaluation_id, parameters=None, runtime=None):
 
         data = []
         times = []
@@ -245,38 +245,32 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
         finished = False
         dimension = -1
 
-        with open(filename) as f:
-            for line in f:
-
-                linedata = line.split("\t")
-
+        with open(filename) as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
                 if dimension == -1:
-                    if len(linedata) == 3:
+                    if len(row) == 4:
                         dimension = 2
-                    elif len(linedata) == 4:
+                    elif len(row) == 5:
                         dimension = 3
-                    elif line == "FINISHED":
-                        return cls(data, times, locations, dimension)
                     else:
                         raise Evaluation.IncompatibleFormatError("Could not parse " + filename)
-
-                if(line == "FINISHED"):
+                    
+                if(row["step"] == "FINISHED"):
                     finished = True
                     break
-                elif dimension != len(linedata)-1:
-                    raise Evaluation.IncompatibleFormatError("Incorrect number of data points in line " + line + " in file " + filename)
 
-                time = float(linedata[0])
+                time = float(row["time"])
                 if(not time in times):
                     times.append(time)
                     data.append([])
                 
                 if(dimension == 2):
-                    location = float(linedata[1])
-                    data[-1].append(float(linedata[2]))  
+                    location = float(row["dim0"])
                 elif dimension == 3:
-                    location = (float(linedata[1]), float(linedata[2]))
-                    data[-1].append(float(linedata[3]))  
+                    location = (float(row["dim0"]), float(row["dim1"]))
+                
+                data[-1].append(float(row["z"]))  
 
                 if(not location in locations):
                     locations.append(location)
