@@ -1,6 +1,8 @@
 import numpy as np
 import math
+import os
 from abc import ABC, abstractmethod
+from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter, ErroredEvaluation
 
 class Evaluator(ABC):
 
@@ -59,3 +61,14 @@ class Evaluator(ABC):
         string = "Currently cached Evaluations " + str(len(self.cache)) + "\n" 
         string += self.getStatistics()
         return string
+
+    @classmethod
+    def ConstructEvaluator(self,luafile, directory, parametermanager: ParameterManager, evaluation_type: Evaluation, parameter_output_adapter: ParameterOutputAdapter, fixedparameters, parallelism):
+        
+        import UGParameterEstimator
+        if "UGSUBMIT_TYPE" in os.environ:
+            print("Detected cluster " + os.environ["UGSUBMIT_TYPE"] + ", using ClusterEvaluator")
+            return UGParameterEstimator.ClusterEvaluator(luafile, directory, parametermanager, evaluation_type, parameter_output_adapter, fixedparameters, parallelism)
+        else:
+            print("No cluster detected, using LocalEvaluator")
+            return UGParameterEstimator.LocalEvaluator(luafile, directory, parametermanager, evaluation_type, parameter_output_adapter, fixedparameters, parallelism)
