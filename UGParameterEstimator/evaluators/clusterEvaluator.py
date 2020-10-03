@@ -9,7 +9,7 @@ from .evaluator import Evaluator
 
 class ClusterEvaluator(Evaluator):
 
-    def __init__(self, luafilename, directory, parametermanager: ParameterManager, evaluation_type: Evaluation, parameter_output_adapter: ParameterOutputAdapter, fixedparameters, jobcount):
+    def __init__(self, luafilename, directory, parametermanager: ParameterManager, evaluation_type: Evaluation, parameter_output_adapter: ParameterOutputAdapter, fixedparameters, jobcount, cliparameters = []):
         self.directory = directory
         self.parametermanager = parametermanager
         self.id = 0
@@ -20,6 +20,7 @@ class ClusterEvaluator(Evaluator):
         self.jobcount = jobcount
         self.jobids = []
         self.luafilename = luafilename
+        self.cliparameters = cliparameters
         
         if not os.path.exists(self.directory):
             os.mkdir(self.directory)
@@ -65,6 +66,8 @@ class ClusterEvaluator(Evaluator):
             absolute_script_path = os.getcwd() + "/" + self.luafilename
 
             callParameters = ["ugsubmit",str(self.jobcount),"---","ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
+
+            callParameters += self.cliparameters
 
             evaluationids[j] = self.id
 

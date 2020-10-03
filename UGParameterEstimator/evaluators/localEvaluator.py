@@ -6,7 +6,7 @@ from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAd
 from .evaluator import Evaluator
 
 class LocalEvaluator(Evaluator):
-    def __init__(self,luafile, directory, parametermanager: ParameterManager, evaluation_type: Evaluation, parameter_output_adapter: ParameterOutputAdapter, fixedparameters, threadcount):
+    def __init__(self,luafile, directory, parametermanager: ParameterManager, evaluation_type: Evaluation, parameter_output_adapter: ParameterOutputAdapter, fixedparameters, threadcount, cliparameters = []):
         self.directory = directory
         self.parametermanager = parametermanager
         self.luafile = luafile
@@ -17,6 +17,7 @@ class LocalEvaluator(Evaluator):
         self.evaluation_type = evaluation_type
         self.parameter_output_adapter = parameter_output_adapter
         self.threadcount = threadcount
+        self.cliparameters = cliparameters
 
         if not os.path.exists(self.directory):
             os.mkdir(self.directory)
@@ -52,6 +53,8 @@ class LocalEvaluator(Evaluator):
             starttime = time.time()
 
             callParameters = ["mpirun","-n",str(self.threadcount),"ugshell","-ex",self.luafile, "-evaluationId",str(self.id),"-communicationDir",self.directory]
+
+            callParameters += self.cliparameters
 
             # assemble the paths
             stdoutfile = os.path.join(self.directory, str(self.id) + "_ug_output.txt")

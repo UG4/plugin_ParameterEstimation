@@ -249,10 +249,10 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
             reader = csv.DictReader(csvfile)
             for row in reader:
                 if dimension == -1:
-                    if len(row) == 4:
-                        dimension = 2
-                    elif len(row) == 5:
+                    if "dim1" in row:
                         dimension = 3
+                    elif "dim0" in row:
+                        dimension = 2
                     else:
                         raise Evaluation.IncompatibleFormatError("Could not parse " + filename)
                     
