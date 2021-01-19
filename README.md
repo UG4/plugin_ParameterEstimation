@@ -1,4 +1,9 @@
 # UGParamaterEstimator
+
+[![Documentation Status](https://readthedocs.org/projects/ugparameterestimator/badge/?version=latest)](https://ugparameterestimator.readthedocs.io/en/latest/?badge=latest)
+
+Docs: [here](https://ugparameterestimator.readthedocs.io/en/latest/).
+
 More or less generic parameter estimator for [UG4](https://gcsc.uni-frankfurt.de/simulation-and-modelling/ug4).
 
 # Installing
@@ -17,7 +22,8 @@ If this package is used with UG installed (probably):
 When using this package, just make sure the eniviroment variable "UG4-ROOT" is defined. Then, just append the lines
 
 ```import sys, os
-sys.path.append(os.path.join(os.environ["UG4_ROOT"],"plugins","ParameterEstimation"))```
+sys.path.append(os.path.join(os.environ["UG4_ROOT"],"plugins","ParameterEstimation"))
+```
 
 to the top of your script.
 
