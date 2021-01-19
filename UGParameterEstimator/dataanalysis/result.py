@@ -19,11 +19,29 @@ def fman(f):
 # This class contains all logentries and all data written away during the iterations of the calibration.
 # The data can be saved by calling save() and will be written to a .pkl file.
 class Result:
+    """This class saves all data created during the calibration process.
+    This includes temporary results of the optimization algorithm (here called metrics, stored every iteration)
+    logging entries, metadata (additional data stored for the whole optimization process) and evaluations.
+
+    Arbitrary metrics and metadata fields can be added using the respecitive methods. they are stored a key-value-pairs.
+    Only requirement is that they need to be `picklable <https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled>`_
+
+    If a filename is specified, the results object will be saved whenever new data is available.
+
+    :param filename: filename to save. if a path is specified, the directories will be create if not yet existant.
+    :type filename: string, optional
+    """
 
     def __init__(self,filename=None):
+        """Constructor
+
+        :param filename: filename to save. if a path is specified, the directories will be create if not yet existant.
+        :type filename: string, optional
+        """
         self.iterations = []
         self.logentries = []
 
+        # stores the current iterations metrics before it is committed to the iterations arry
         self.currentIteration = {}
 
         self.metadata = {}
@@ -32,23 +50,36 @@ class Result:
 
         if filename:
             directory = os.path.dirname(self.filename)
-            os.makedirs(directory, exist_ok=True)
+            if directory != "":
+                os.makedirs(directory, exist_ok=True)
 
     @property
     def iterationCount(self):
+        """Returns the number of iterations stored in this object
+
+        :return: Number of iterations store din this object
+        :rtype: Integer
+        """
+
         return len(self.iterations)
 
-    # writes the iteration data as a simple tab-separated-text file for postprocessing
-    def writeTable(self, file, metadata):
+    def writeTable(self, filename, metrics=[]):
+        """writes the iteration data as a simple tab-separated-text file for postprocessing.
+        Includes all parameter data for each iteration, and optionally metrics stored during the optimization.
+        :param filename: the name of the file the result should be written to
+        :type filename: string
+        :param metrics: the metadata fields to include in the table as columns, additionally to the parameters
+        :type metrics: Array containing tuples: First string the table header, second string the name of the metadata to store there
+        """
 
         pm = self.metadata["parametermanager"]
-        with open(file,"w") as f:
+        with open(filename,"w") as f:
             
             # write table header
             f.write("step" + "\t")
             for p in pm.parameters:
                 f.write(p.name+"\t")
-            for p in metadata:
+            for p in metrics:
                 f.write(p[0]+"\t")
 
             f.write("\n")
@@ -59,7 +90,7 @@ class Result:
                 for j in range(len(pm.parameters)):
                     f.write(str(iteration["parameters"][j]) + "\t")
 
-                for p in metadata:
+                for p in metrics:
                     if p[1] in iteration:
                         f.write(str(iteration[p[1]]) + "\t")
                     else:
@@ -67,20 +98,25 @@ class Result:
                 
                 f.write("\n")
                 i += 1
-    
-    # writes the iteration data as a latex table.
-    #   file - the name of the file the result should be written to
-    #   metadata - the metadata fields to include in the table as columns, additionally to the parameters
-    #   nameoverride - allows the user to provide better readable names as parameter names
-    def writeLatexTable(self, file, metadata, nameoverride=None):
+
+    def writeLatexTable(self, filename, metrics=[], nameoverride=None):
+        """writes the iteration data as a latex table.
+        Includes all parameter data for each iteration, and optionally metrics stored during the optimization.
+        :param filename: the name of the file the result should be written to
+        :type filename: string
+        :param metrics: the metrics fields to include in the table as columns, additionally to the parameters, optional
+        :type metrics: Array containing tuples, optional: First string the table header, second string the name of the metrics to store there
+        :param nameoverride: allows the user to provide better readable names as parameter names
+        :type nameoverride: Array containing new parameter names, optional
+        """
 
         pm = self.metadata["parametermanager"]
-        with open(file,"w") as f:
+        with open(filename,"w") as f:
             
             # write table header
             f.write("\\begin{tabular}{")
             
-            count = len(pm.parameters) + len(metadata)
+            count = len(pm.parameters) + len(metrics)
             f.write("c||")
             for i in range(count-1):
                 f.write("c|")
@@ -94,9 +130,9 @@ class Result:
                 else:
                     f.write("$\\hat{\\theta}_"+str(i+1)+"^{(l)}$ (" + nameoverride[i] + ") & ")
 
-            for i in range(len(metadata)-1):
-                f.write(metadata[i][0]+"&")            
-            f.write(metadata[-1][0]+"\\\\\hline\n")
+            for i in range(len(metrics)-1):
+                f.write(metrics[i][0]+"&")            
+            f.write(metrics[-1][0]+"\\\\\hline\n")
 
             i = 0
             for iteration in self.iterations:
@@ -105,13 +141,13 @@ class Result:
                     entry = pm.parameters[j].getTransformedParameter(iteration["parameters"][j])
                     f.write("$" + Result.getLatexString(entry) + "$"+ " & ")
 
-                for j in range(len(metadata)):
-                    p = metadata[j][1]
+                for j in range(len(metrics)):
+                    p = metrics[j][1]
                     if p in iteration:
                         f.write("$" + Result.getLatexString(iteration[p]) + "$" )
                     else:
                         f.write("--")
-                    if j == len(metadata)-1:
+                    if j == len(metrics)-1:
                         f.write("\\\\\n")
                     else:
                         f.write(" & ")
@@ -120,7 +156,17 @@ class Result:
 
             f.write("\\end{tabular}")
 
-    def writeSimpleErrorTable(self, file, metadata, nameoverride=None):
+    def writeSimpleErrorTable(self, file, metrics, nameoverride=None):
+        """writes the error data as a latex table.
+        Includes all parameter data for each iteration, standard errors for the parameters, and optionally metadata stored during the optimization.
+        Only can be used if the errors are stored in the results object (currently only by GaussNewtonOptimizer)
+        :param filename: the name of the file the result should be written to
+        :type filename: string
+        :param metrics: the metrics fields to include in the table as columns, additionally to the parameters
+        :type metrics: Array containing tuples: First string the table header, second string the name of the metadata to store there
+        :param nameoverride: allows the user to provide better readable names as parameter names
+        :type nameoverride: Array containing new parameter names, optional
+        """
 
         pm = self.metadata["parametermanager"]
         with open(file,"w") as f:
@@ -128,7 +174,7 @@ class Result:
             # write table header
             f.write("\\begin{tabular}{")
             
-            count = 2*len(pm.parameters) + len(metadata)
+            count = 2*len(pm.parameters) + len(metrics)
             f.write("c||")
             for i in range(count-1):
                 f.write("c|")
@@ -144,9 +190,9 @@ class Result:
                 
                 f.write("se($\\theta_" + str(i+1) + "^{(l)}$) & ")
 
-            for i in range(len(metadata)-1):
-                f.write(metadata[i][0]+"&")            
-            f.write(metadata[-1][0]+"\\\\\hline\n")
+            for i in range(len(metrics)-1):
+                f.write(metrics[i][0]+"&")            
+            f.write(metrics[-1][0]+"\\\\\hline\n")
 
             i = 0
             for iteration in self.iterations:
@@ -157,13 +203,13 @@ class Result:
                     error = iteration["errors"][j]
                     f.write("$" + Result.getLatexString(error) + "$ & ")                    
 
-                for j in range(len(metadata)):
-                    p = metadata[j][1]
+                for j in range(len(metrics)):
+                    p = metrics[j][1]
                     if p in iteration:
                         f.write("$" + Result.getLatexString(iteration[p]) + "$" )
                     else:
                         f.write("--")
-                    if j == len(metadata)-1:
+                    if j == len(metrics)-1:
                         f.write("\\\\\n")
                     else:
                         f.write(" & ")
@@ -171,9 +217,15 @@ class Result:
                 i += 1
 
             f.write("\\end{tabular}")
-    
-    def writeErrorTable(self, file, confidence=0.95):
 
+
+    def writeErrorTable(self, file):
+        """writes the error data as a latex table.
+        Includes all parameter data for each iteration, standard errors for the parameters, and an estimated confidence interval
+        Only can be used if the errors are stored in the results object (currently only by GaussNewtonOptimizer)
+        :param filename: the name of the file the result should be written to
+        :type filename: string
+        """
         pm = self.metadata["parametermanager"]
         with open(file,"w") as f:
             
@@ -222,6 +274,18 @@ class Result:
             f.write("\\end{tabular}")
 
     def writeMatrix(self, file, name, symbol, iterations_to_print=[-1]):
+        """Writes an numpy matrix stored as iteration data to a file, formatted for direct use in latex using a pmatrix element.
+        The matrix has to be saved by the optimizer. Can be used to print the matrix from multiple iterations.
+
+        :param filename: the name of the file the result should be written to
+        :type filename: string
+        :param name: the name of the matrix, as stored with addMetric
+        :type name: string
+        :param symbol: the name of the matrix, as printed in latex. this can be any valid latex code. Will be subscripted by the iteration index
+        :type symbol: string
+        :param iterations_to_print: array of iterations to print this meteric for. If unspecified, will print the data fromthe last iteration.
+        :type iterations_to_print: Array of Integers, optional
+        """
         
         with open(file,"w") as f:
             for i in iterations_to_print:
@@ -245,7 +309,20 @@ class Result:
                 
                 f.write("\\end{pmatrix}$$\n")
 
-    def writeSensitivityPlots(self, filename, iteration, extended=True, zlabel=lambda i: "$\\frac{\\partial \\vec{m}}{\delta \\theta_"+ str(i+1) + "}$ {[m]}"):
+    def writeSensitivityPlots(self, filename, iteration, averaged=True, zlabel=lambda i: "$\\frac{\\partial \\vec{m}}{\delta \\theta_"+ str(i+1) + "}$ {[m]}"):
+        """prints a sensitivity plot in latex describing the sensitivity of the calibrated values to each parameter.
+        This works if the target is a FreeSurfaceTimeDependentEvaluation or a FreeSurfaceEquilibriumEvaluation.
+        Uses tikzpicture package in the generated latex code.
+
+        :param filename: the name of the file the result should be written to
+        :type filename: string
+        :param iteration: the iteration the data will be used of. if -1 is specified, the data from the last iteration will be used.
+        :type iteration: integer
+        :param averaged: print averaged sensitivity over all timesteps and over all locations (for timedependent case). If false a 3d plot will be printed instead.
+        :type averaged: bool, optional
+        :param zlabel: label of the z axis, dependent on the current iteration. Has to be valid latex code.
+        :type zlabel: function integer => string, optional
+        """
 
         pm = self.metadata["parametermanager"]
         if iteration == -1:
@@ -270,7 +347,7 @@ class Result:
             if isinstance(self.metadata["target"], FreeSurfaceTimeDependentEvaluation):
                 partial_series = FreeSurfaceTimeDependentEvaluation.fromNumpyArray(partial, self.metadata["target"])
                 
-                if extended:
+                if averaged:
                     partial_series.writeCSVAveragedOverTimesteps(filename + "-" + pm.parameters[i].name + "-over-time.csv")
                     partial_series.writeCSVAveragedOverLocation(filename + "-" + pm.parameters[i].name + "-over-location.csv")
                 
@@ -306,8 +383,17 @@ class Result:
             elif isinstance(self.metadata["target"], FreeSurfaceEquilibriumEvaluation):
                 partial_series = FreeSurfaceEquilibriumEvaluation.fromNumpyArray(partial, self.metadata["target"])
                 FreeSurfaceEquilibriumEvaluation.writePlots({"Sensitivität":{"eval":partial_series}}, filename + "-" + pm.parameters[i].name.replace("_","-") + ".tex", zlabel(i))
-                
-    def plotComparison(self, filename, force2d=False):
+
+    def plotComparison(self, filename, force2d=False):                    
+        """Saves a latex document plotting a comparison between target data, the evealuation using the initial parameters and the evaluation 
+        using the calibrated parameters.
+        This works if the target is a FreeSurfaceTimeDependentEvaluation or a FreeSurfaceEquilibriumEvaluation.
+
+        :param filename: the name of the file the result should be written to
+        :type filename: string
+        :param force2d: In timedependent case: Print the last evaluation for all 3 plots as a 2d plot. If false, 3 3d plots will be printed.
+        :type force2d: bool, optional
+        """
 
         target = self.metadata["target"]
         result = self.iterations[self.iterationCount-1]["measurementEvaluation"]
@@ -342,6 +428,13 @@ class Result:
 
     @staticmethod
     def getLatexString(number):
+        """Returns a number as a string formatted for usage in latex. This gives the scientific notation with 4 significant digits.
+
+        :param number: the number to convert
+        :type number: number
+        :return: number formatted for usage in latex.
+        :rtype: string
+        """
 
         if number is None:
             return "--"
@@ -356,22 +449,52 @@ class Result:
             return str(man) + "\\cdot 10^{" + str(exp) + "} "
 
     def addRunMetadata(self, name, value):
+        """Adds an object as metadata.
+
+        :param name: the key for this metadata
+        :type name: string
+        :param value: value for this metadata key
+        :type value: any picklable python type
+        """
         self.metadata[name] = value
 
     def addEvaluations(self, evaluations, tag=None):
+        """Adds evaluations to the current iteration.
+        The evaluations can be tagged with an additional string for later analysis.
+
+        :param evaluations: the evaluations to add
+        :type evaluations: string
+        :param tag: additional tag for this iteration
+        :type tag: string
+        """
         if "evaluations" not in self.currentIteration:
             self.currentIteration["evaluations"] = []
         self.currentIteration["evaluations"].append((copy.deepcopy(evaluations), tag, self.iterationCount))
 
     def addMetric(self, name, value):
+        """Adds a metric to the current evaluation
+
+        :param name: name of the metric to add
+        :type name: string
+        :param value: value for this metric key
+        :type value: any picklable python type
+        """
         self.currentIteration[name] = value
-        
-    def commitIteration(self):
+
+    def commitIteration(self):            
+        """Stores the current iteration to iterations array.
+        If a filename was specified at construction, also saves the results object.
+        """
         self.iterations.append(copy.deepcopy(self.currentIteration))
         self.currentIteration.clear()
         self.save()
 
     def save(self,filename=None):
+        """Saves the results object in pickle format to a file.
+        
+        :param filename: filename to save to. if not specified, the filename set when constructing this object will be used.
+        :type filename: string
+        """
         if filename is None:            
             filename = self.filename
 
@@ -380,20 +503,36 @@ class Result:
 
         with open(filename,"wb") as f:
             pickle.dump(self.__dict__,f)
-    
-    def log(self, text):
+
+    def log(self, text):        
+        """Adds an logentry.
+
+        The logentry is printed in the process. Logs are addionally written to a separate file "<filename>_log" in plain text format to allow for easier debugging.
+        
+        :param text: logtext to add.
+        :type text: string
+        """
         logtext = "[" + str(datetime.now()) + "] " + text
         print(logtext)        
         self.logentries.append(logtext)
         with open(self.filename + "_log","a") as f:
             f.write(logtext + "\n")
-                
+ 
     def printlog(self):
+        """Prints all logentries stored in the object.
+        """  
         for l in self.logentries:
             print(l)
-
+ 
     @classmethod
     def load(cls, filename, printInfo=True):
+        """Loads a result object stored pickled in a file.
+
+        :param filename: path to the file to load.
+        :type filename: string
+        :param printInfo: print information about the loaded results object (default: true)
+        :type printInfo: bool, optional
+        """  
         result = cls()
         with open(filename, "rb") as f:
             result.__dict__.update(pickle.load(f))
@@ -402,9 +541,21 @@ class Result:
             print(result)
 
         return result
-    
+      
     @staticmethod
-    def plotMultipleRuns(resultnames, outputfilename, log=True, paramnames=None):
+    def plotMultipleRuns(resultnames, outputfilename, log=True, paramnames=None):      
+        """Saves a plot describing the optimization success of multiple different optimization runs with the same parameters, starting at different initial values.
+        This uses the tikzpicture latex package in the generated code.
+
+        :param resultnames: paths to the files to load.
+        :type resultnames: array of strings
+        :param outputfilename: filename to save to
+        :type outputfilename: string
+        :param log: use a logarithmic y axis
+        :type log: bool, optional
+        :param paramnames: optionally override the parameternames using this array of names
+        :type paramnames: array of string, optional, size has to equal the number of parameters
+        """   
 
         with open(outputfilename, "w") as f:
             f.write("\t\\begin{tikzpicture}[scale=0.9]\n")

@@ -15,30 +15,19 @@ params = {
 		evaluationDir = util.GetParam("-communicationDir","."),
 }
 
--- assembling the file names from the given information: directory and id
-measurementFile = params.evaluationDir.."/"..params.evaluationId.."_measurement"
-parameterFile = params.evaluationDir.."/"..params.evaluationId.."_parameters.txt"
-
+------------------------------------------
 -- reading the parameters from file
 --
--- can be used as calibrationparams.porosity or the like
+-- can be used as p.porosity or the like
 -- in the lua file from here on
 --
-calibrationparams = {}
-file = io.open(parameterFile, "r")
-if file == nil then
-	print("No parameter file found! Using default params.")
-else
-	file:close()
-	for line in io.lines(parameterFile) do
-		index = string.find(line, "=")
-		name = string.sub(line, 1, index-1)
-		value = string.sub(line, index+1)
-		calibrationparams[name] = tonumber(value)
-	end
-end
+-- this uses the ParameterUtil plugin
+--
+-- assembling the file name from the given information: directory and id
+-- the id will be unique for a simulation run
+---------------------------------------------
+local p = util.Parameters:fromfile(params.evaluationDir.."/"..params.evaluationId.."_parameters.json")
 
-function initial_lsf (x,y,t) return y-0.1 end
 
 function calculateMeasurementPoints(points,a,b)
 	result = {}
@@ -51,10 +40,12 @@ function calculateMeasurementPoints(points,a,b)
 	return result
 end
 
-
+function initial_lsf (x,y,t) return y-0.1 end
 problem = 
 { 
+	--------------------------------------
 	-- The domain specific setup
+	--------------------------------------
 	domain = 
 	{
 		dim = 2,
@@ -62,84 +53,84 @@ problem =
 		numRefs = 5,
 		numPreRefs = 0,
 	},
+	balancer = {
+		qualityThreshold = params.qualityThreshold,
+		partitioner = {
+			type = params.partitioner,
+			verbose = false,
+			enableZCuts = false,
+			clusteredSiblings = false
+		},
+		partitionPostProcessor = params.partitioner == "parmetis" and "clusterElementStacks" or "smoothPartitionBounds",
+		hierarchy = {
+			type = "standard",
+			maxRedistProcs = params.redistProcs,
+			minElemsPerProcPerLevel = 800,
+			qualityRedistLevelOffset = params.qualityRedistLevelOffset,
+			{
+					upperLvl = 0,
+					maxRedistProcs = params.firstRedistProcs
+			},
 
-                balancer = {
-                        qualityThreshold = params.qualityThreshold, -- parmetis seems to fail when executed on 65536 procs.
-                                                                        -- note that one can still simulate on 65536 procs either by using
-                                                                        -- a bisection partitioner or by avoiding redistribution on
-                                                                        -- 65536 processes with parmetis by using a low qualityThreshold
-                                                                        -- (e.g. 0.5, default is 0.9)
-                        partitioner = {
-                                type = params.partitioner,
-                                verbose = false,
-                                enableZCuts = false, -- zCuts are disabled by default but are enabled again through hints in the proc-hierarchy for non-aniso-levels
-                                clusteredSiblings = false
-                        },
-
-                        partitionPostProcessor =
-                                params.partitioner == "parmetis" and "clusterElementStacks"
-                                                                                                  or "smoothPartitionBounds",
-
-                        hierarchy = {
-                                type = "standard",
-                                maxRedistProcs = params.redistProcs,
-                                minElemsPerProcPerLevel = 800,
-                                qualityRedistLevelOffset = params.qualityRedistLevelOffset,
-
-                                {
-                                        upperLvl = 0,
-                                        maxRedistProcs = params.firstRedistProcs
-                                },
-
-                                {
-                                        upperLvl = 2,
-                                        maxRedistProcs = 16
-                                },
-                        },
-                },
+			{
+					upperLvl = 2,
+					maxRedistProcs = 16
+			},
+	},
+	},
 
 
 	free_surface =
     {
-			init_lsf = "initial_lsf",
-			-- fs_height_subsets = "TopEdge",
+		init_lsf = "initial_lsf",
+		LSFOutflowSubsets = "LeftEdge,RightEdge",
+		LSFDirichletSubsets = "BottomEdge,TopEdge",
+		NumEikonalSteps = 16,
+		InitNumEikonalSteps = 64,
 
-			-- Technical parameters:
-			LSFOutflowSubsets = "LeftEdge,RightEdge",
-			LSFDirichletSubsets = "BottomEdge,TopEdge",
-			NumEikonalSteps = 16, -- number of steps for the computation of the SDF and the extension
-			InitNumEikonalSteps = 64, -- the same but for the initialization
-			measure_height =
-			{
-				output_file = measurementFile,
-				measurement_points = calculateMeasurementPoints(calibrationparams.numberOfMeasurementPoints, 0, 1),
-				binary_output = true,
-				print_measurement = true
-			},
-			zero_init_nv = true,
-			reinit_sdf_rate = 20,
-			antideriv_src = true,
-			debugOutput = true
+		----------------------------------------------------
+		-- Specify measurement of free surface position!
+		--
+		-- This uses the FSFileMeasurer C++ class available
+		-- in new versions of the d3f plugin.
+		----------------------------------------------------
+		fs_height_points =
+		{
+			-- the file to write to.
+			-- assembling the file name from the given information: directory and id
+			csv_output = params.evaluationDir.."/"..params.evaluationId.."_measurement",
+
+			-- the points to measure the free surface at
+			data = calculateMeasurementPoints(10, 0, 1),
+
+			-- dont compare the data to a taregt yet, we will do this in UGParameterEstimator
+			compare = false,
+
+			-- log output while measuring
+			log = true
+		},
+		zero_init_nv = true,
+		reinit_sdf_rate = 20,
+		antideriv_src = true,
+		debugOutput = true
 	},
-
-	-- The density-driven-flow setup
 
 	flow = 
 	{
 		type = "haline",
 		cmp = {"c", "p"},
 		
-		gravity = -9.81,            -- [ m s^{-2}�] ("standard", "no" or numeric value)	
+		gravity = -9.81,           
 		density = 					
-		{	"linear", 				-- density function ["const", "linear", "ideal"]
-			min = 997,				-- [ kg m^{-3} ] 
-			max = 998,				-- [ kg m^{-3} ]
+		{	"linear", 				
+			min = 997,				
+			max = 998,				
 		},	
 		
 		viscosity = 
-		{	"const",				-- viscosity function ["const", "linear", "real"] 
-			min = 1e-3,				-- [ kg m^{-3} ] 
-			max = 1.5e-3,			-- [ kg m^{-3} ]
+		{	"const",
+			min = 1e-3,	
+			max = 1.5e-3,
 			brine_max = 0.001		
 		},
 		
@@ -147,18 +138,20 @@ problem =
 		alphaL			= 0,
 		alphaT			= 0,
 
-		upwind 		= "partial",	-- no, partial, full 
-		boussinesq	= true,		-- true, false
+		upwind 		= "partial", 
+		boussinesq	= true,	
 
-		porosity 		=  0.1,			-- this cant do anything, as all subsets are defined below?
+		porosity 		=  0.1,
 		permeability 	=  1.0-12,
 
 		{
 			subset                  = {"Body"},
 
+			---------------------------------------------------
 			-- this is how you can use the parameters in code
-			porosity                =  calibrationparams.porosity,
-			permeability    =  calibrationparams.permeability 
+			---------------------------------------------------
+			porosity        =  p.porosity,
+			permeability    =  p.permeability 
 		},
 		
 		initial = 
@@ -176,50 +169,53 @@ problem =
 		
 		source = 
 		{
-			{ point = {0.1, 0.05}, params = { calibrationparams.inflow, 0} }
+			---------------------------------------------------
+			-- this is how you can use the parameters in code
+			---------------------------------------------------
+			{ point = {0.1, 0.05}, params = { p.inflow, 0} }
 		}	
 	},
 	
 	solver =
 	{
 		type = "newton",
-		lineSearch = {			   		-- ["standard", "none"]
+		lineSearch = {
 			type = "standard",
-			maxSteps		= 4,		-- maximum number of line search steps
-			lambdaStart		= 1,		-- start value for scaling parameter
-			lambdaReduce	= 0.5,		-- reduction factor for scaling parameter
-			acceptBest 		= true,		-- check for best solution if true
-			checkAll		= false		-- check all maxSteps steps if true 
+			maxSteps		= 4,
+			lambdaStart		= 1,
+			lambdaReduce	= 0.5,
+			acceptBest 		= true,
+			checkAll		= false
 		},
 
 		convCheck = {
 			type		= "standard",
-			iterations	= 10,			-- number of iterations
-			absolute	= 1e-8,			-- absolut value of defact to be reached; usually 1e-6 - 1e-9
-			reduction	= 1e-6,		-- reduction factor of defect to be reached; usually 1e-6 - 1e-7
-			verbose		= true			-- print convergence rates if true
+			iterations	= 10,
+			absolute	= 1e-8,
+			reduction	= 1e-6,
+			verbose		= true
 		},
 		
 		linSolver =
 		{
-			type = "bicgstab",			-- linear solver type ["bicgstab", "cg", "linear"]
+			type = "bicgstab",
 			precond = 
 			{	
-				type 		= "gmg",	-- preconditioner ["gmg", "ilu", "ilut", "jac", "gs", "sgs"]
-				smoother 	= "ilu",	-- gmg-smoother ["ilu", "ilut", "jac", "gs", "sgs"]
-				cycle		= "V",		-- gmg-cycle ["V", "F", "W"]
-				preSmooth	= 3,		-- number presmoothing steps
-				postSmooth 	= 3,		-- number postsmoothing steps
-				rap			= false,	-- comutes RAP-product instead of assembling if true 
-				baseLevel	= 0,		-- gmg - baselevel
+				type 		= "gmg",
+				smoother 	= "ilu",
+				cycle		= "V",
+				preSmooth	= 3,
+				postSmooth 	= 3,
+				rap			= false,
+				baseLevel	= 0,
 				
 			},
 			convCheck = {
 				type		= "standard",
-				iterations	= 100,		-- number of iterations
-				absolute	= 5e-9,		-- absolut value of defact to be reached; usually 1e-8 - 1e-10 (must be stricter / less than in newton section)
-				reduction	= 1e-6,		-- reduction factor of defect to be reached; usually 1e-7 - 1e-8 (must be stricter / less than in newton section)
-				verbose		= true,		-- print convergence rates if true
+				iterations	= 100,
+				absolute	= 5e-9,
+				reduction	= 1e-6,
+				verbose		= true,
 			}
 		}
 	},
@@ -227,21 +223,24 @@ problem =
 	time = 
 	{
 		control	= "prescribed",
-		start 	= 0.0,		-- [s]  start time point
-		stop	= calibrationparams.stoptime,		-- [s]  end time point
-	  	dt      = 0.2,            -- [s]  initial time step 50 steps = 1 month = 2.628e6 s
-		dtmin	= 0.2*0.01,		-- [s]  minimal time step
-		dtmax	= 2,		-- [s]  maximal time step
-		dtred	= 0.5,		-- [1]  reduction factor for time step
+		start 	= 0.0,
+		stop	= p.stoptime,
+	  	dt      = 0.2,
+		dtmin	= 0.2*0.01,
+		dtmax	= 2,
+		dtred	= 0.5,
 		tol 	= 1e-2,
 	},
-	
+
+	---------------------------------------
+	-- might be overwritten, see below
+	---------------------------------------
 	output = 
 	{
-		freq	= 1, 			-- prints every x timesteps
-		binary 	= true,			-- format for vtk file
+		freq	= 1,
+		binary 	= true,
 		{
-			file = "vtk",		-- name of vtk file
+			file = "vtk",
 			type = "vtk",
 	        data = {"c", "p", "q", "lsf", "nv", "nv_ext", "sdf", "lsf_cfl"},
 		}
@@ -249,7 +248,12 @@ problem =
 	}
 } 
 
-if calibrationparams.output ~= 1 then
+-------------------------------------------------
+-- this parameter is set to 0 by default to 
+-- avoid writing of unnecessary data
+-- if you want output, enable it by setting it to 1 as a fixedparameter
+-------------------------------------------------
+if p.output ~= 1 then
 	problem.output = nil
 end
 
