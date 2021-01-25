@@ -1,6 +1,7 @@
 # UGParamaterEstimator
 
 [![Documentation Status](https://readthedocs.org/projects/ugparameterestimator/badge/?version=latest)](https://ugparameterestimator.readthedocs.io/en/latest/?badge=latest)
+![Python package](https://github.com/UG4/plugin_ParameterEstimation/workflows/Python%20package/badge.svg)
 
 Docs: [here](https://ugparameterestimator.readthedocs.io/en/latest/).
 
