@@ -5,7 +5,7 @@ import math
 import time
 from UGParameterEstimator import FreeSurfaceTimeDependentEvaluation, ParameterManager, Evaluator, Result, ErroredEvaluation
 
-class TestEvaluator(Evaluator):
+class FunctionEvaluator(Evaluator):
     def __init__(self, parametermanager: ParameterManager, resultobj: Result, function="rosenbrock"):
         self.parametermanager = parametermanager
         self.fixedparameters = {}

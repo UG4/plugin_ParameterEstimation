@@ -316,7 +316,7 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
         self.dimension = dimension
         self.eval_id = eval_id
         self.parameters = parameters
-        self.runtime = runtime    
+        self.runtime = runtime
 
     @classmethod
     def parseBinary(cls, file, evaluation_id=-1, parameters=None, runtime=None):
@@ -484,6 +484,9 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
         """Used to interpolate between different evaluations, when timestamps might differ because
         of the used time control schemes.
 
+        Important Note: Care has to be taken with the simulation time frames. If the target timeframe lasts longer or starts earlier,
+        the next suitable timestep (i.e. the first or last one) will be used automatically. This is not always desirable!
+
         :param target: FreeSurfaceEvaluation whichs format should be matched and interpolated to
         :type target: FreeSurfaceEvaluation
         :return: the data of this evaulation, interpolated to the targets format
@@ -507,48 +510,40 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
 
                 # find nearest entries in this instances time field
                 nearest_lower = 0
-                nearest_higher = len(self.times)-1
 
-
-                while(True):
-                    if (nearest_lower +1 == len(self.times)):
-                        if(self.times[nearest_lower] == targettime):
-                            break
-                        else:
-                            if(i == len(target.times)-1):
-                                break
-                            else:
-                                raise Evaluation.IncompatibleFormatError("target time " + str(targettime) + " can not be interpolated from this time series.")
-                    else:
-                        if(self.times[nearest_lower] < targettime and not self.times[nearest_lower+1] > targettime):
-                            nearest_lower += 1
-                        else:
-                            break
-                # perfect match
-                if(self.times[nearest_lower] == targettime):
-                    array[i*len(target.locations):((i+1)*len(target.locations))] = self.data[nearest_lower]
-                    continue
-                # edge cases
-                elif (i == len(target.times)-1) and (nearest_lower +1 == len(self.times)):
-                    array[i*len(target.locations):((i+1)*len(target.locations))] = array[(i-1)*len(target.locations):(i*len(target.locations))]
-                    continue
-
-                while(True):
-                    if(self.times[nearest_higher] > targettime and not self.times[nearest_higher-1] < targettime):
-                        nearest_higher -= 1
-                    else:
+                # first, find the time with the maximum index lower or equal to targettime
+                while True:
+                    if self.times[nearest_lower] == targettime:
+                        # found a perfect match!
+                        array[i*len(target.locations):((i+1)*len(target.locations))] = self.data[nearest_lower]
                         break
-                
-                # interpolate
-                higherdata = np.array(self.data[nearest_higher])
-                highertime = self.times[nearest_higher]
-                lowerdata = np.array(self.data[nearest_lower])
-                lowertime = self.times[nearest_lower]
 
-                percentage = ((targettime-lowertime) / (highertime-lowertime))
-                interpolated = percentage*higherdata + (1-percentage)*lowerdata
+                    if nearest_lower == self.timeCount-1:
+                        # at the edge...
+                        array[i*len(target.locations):((i+1)*len(target.locations))] = self.data[nearest_lower]
+                        break
 
-                array[i*len(target.locations):((i+1)*len(target.locations))] = interpolated            
+                    if self.times[nearest_lower] < targettime:
+                        if self.times[nearest_lower+1] > targettime:
+                            # found it
+                            # interpolate
+                            higherdata = np.array(self.data[nearest_lower+1])
+                            highertime = self.times[nearest_lower+1]
+                            lowerdata = np.array(self.data[nearest_lower])
+                            lowertime = self.times[nearest_lower]
+
+                            percentage = ((targettime-lowertime) / (highertime-lowertime))
+                            interpolated = percentage*higherdata + (1-percentage)*lowerdata
+
+                            array[i*len(target.locations):((i+1)*len(target.locations))] = interpolated
+                            break
+                        else:
+                            nearest_lower += 1
+
+                    # if we are here, self.times[nearest_lower] > targettime....
+                    if nearest_lower == 0:
+                        array[i*len(target.locations):((i+1)*len(target.locations))] = self.data[nearest_lower]
+                        break
 
             return array
 
