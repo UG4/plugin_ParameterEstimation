@@ -113,7 +113,7 @@ class Evaluator(ABC):
         return string
 
     @classmethod
-    def ConstructEvaluator(self,luafile, directory, parametermanager: ParameterManager, evaluation_type: Evaluation, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, parallelism=10, cliparameters=[]):
+    def ConstructEvaluator(self,luafile, directory, parametermanager: ParameterManager, evaluation_type: Evaluation, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, threadcount=10, cliparameters=[]):
         """Factory method to construct a suitable evaluator.
 
         If UGSUBMIT can be detected on the system, a ClusterEvaluator will be used, if not, a LocalEvaluator.
@@ -139,7 +139,7 @@ class Evaluator(ABC):
         import UGParameterEstimator
         if "UGSUBMIT_TYPE" in os.environ:
             print("Detected cluster " + os.environ["UGSUBMIT_TYPE"] + ", using ClusterEvaluator")
-            return UGParameterEstimator.ClusterEvaluator(luafile, directory, parametermanager, evaluation_type, parameter_output_adapter, fixedparameters, parallelism, cliparameters)
+            return UGParameterEstimator.ClusterEvaluator(luafile, directory, parametermanager, evaluation_type, parameter_output_adapter, fixedparameters, threadcount, cliparameters)
         else:
             print("No cluster detected, using LocalEvaluator")
-            return UGParameterEstimator.LocalEvaluator(luafile, directory, parametermanager, evaluation_type, parameter_output_adapter, fixedparameters, parallelism, cliparameters)
+            return UGParameterEstimator.LocalEvaluator(luafile, directory, parametermanager, evaluation_type, parameter_output_adapter, fixedparameters, threadcount, cliparameters)

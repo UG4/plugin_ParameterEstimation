@@ -19,7 +19,7 @@ class ClusterEvaluator(Evaluator):
     Output of UG4 is redirected into a separate <id>_ug_output.txt file.
 
     """
-    def __init__(self, luafilename, directory, parametermanager: ParameterManager, evaluation_type, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, jobcount=10, cliparameters = []):
+    def __init__(self, luafilename, directory, parametermanager: ParameterManager, evaluation_type, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, threadcount=10, cliparameters = []):
         """Class constructor
 
         :param luafilename: path to the luafile to call for every evaluation
@@ -34,8 +34,8 @@ class ClusterEvaluator(Evaluator):
         :type parameter_output_adapter: ParameterOutputAdapter
         :param fixedparameters: optional dictionary of fixed parameters to pass
         :type fixedparameters: dictionary<string, string|number>, optional
-        :param jobcount: optional maximum number of parallel jobs to submit in UGSUBMIT, defaults to 10
-        :type jobcount: int, optional
+        :param threadcount: optional maximum number of threads per job in UGSUBMIT, defaults to 10
+        :type threadcount: int, optional
         :param cliparameters: list of command line parameters to append to subprocess call. use separate entries
                 for places that would normally require a space.
         :type cliparameters: list of strings, optional
@@ -47,7 +47,7 @@ class ClusterEvaluator(Evaluator):
         self.fixedparameters.update(fixedparameters)
         self.evaluation_type = evaluation_type
         self.parameter_output_adapter = parameter_output_adapter
-        self.jobcount = jobcount
+        self.threadcount = threadcount
         self.jobids = []
         self.luafilename = luafilename
         self.cliparameters = cliparameters
@@ -66,7 +66,7 @@ class ClusterEvaluator(Evaluator):
         :return: parallelism of the evaluator
         :rtype:  int
         """
-        return self.jobcount
+        return self.threadcount
 
     def evaluate(self, evaluationlist, transform=True, tag=""):
         """Evaluates the parameters given in evaluationlist using UG4, and the adapters set in the constructor.
@@ -110,7 +110,7 @@ class ClusterEvaluator(Evaluator):
             absolute_directory_path = os.getcwd() + "/" + self.directory
             absolute_script_path = os.getcwd() + "/" + self.luafilename
 
-            callParameters = ["ugsubmit",str(self.jobcount),"---","ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
+            callParameters = ["ugsubmit",str(self.threadcount),"---","ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
 
             callParameters += self.cliparameters
 

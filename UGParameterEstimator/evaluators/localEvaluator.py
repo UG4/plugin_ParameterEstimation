@@ -126,7 +126,10 @@ class LocalEvaluator(Evaluator):
             results.append(data)
 
         return results
-    
+        
+    def __enter__(self):
+        pass
+
     def __exit__(self, type, value, traceback):
         # todo: cancel local process?
         pass

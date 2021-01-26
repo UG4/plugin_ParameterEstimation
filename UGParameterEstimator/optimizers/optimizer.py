@@ -10,17 +10,40 @@ from UGParameterEstimator import Result, LineSearch, Evaluator, ParameterManager
 from abc import ABC, abstractmethod
 
 class Optimizer(ABC):
+    """A base class for all optimizers, defining the interface and common helper methods
+    """
 
     Differencing = Enum("Differencing", "central forward pure_forward pure_central")
 
     def __init__(self, epsilon, differencing: Differencing):
+        """Class constructor. Should be called by all classes implementing an optimizer.
+
+        :param epsilon: The value of epsilon to use when doing finite differencing. If a value lower than 0 is supplied,
+        a good guess (sqrt of machine precision) is used.
+        :type epsilon: float
+        :param differencing: the type of differencing to use to calculate the jacobi matrix
+        :type differencing: Optimizer.Differencing
+        """
         self.differencing = differencing
         self.finite_differencing_epsilon = epsilon
 
         if epsilon < 0:
             epsilon = np.sqrt(np.finfo(np.float).eps)
 
-    def measurementToNumpyArrayConverter(self, evaluations, target):        
+    def measurementToNumpyArrayConverter(self, evaluations, target):  
+        """Helper function to convert an array of Evaluation.
+        Each evaluation will be converted and interpolated using it's
+        getNumpyArrayLike method.
+        None-values or Errors will be converted to None.
+
+        :param evaluations: the evaluations to convert
+        :type evaluations: list of Evaluations
+        :param target: Evaluation describing the format/time steps
+        each evaluation should be converted/interpolated to
+        :type target: Evaluation
+        :return: the results of the covnertions
+        :rtype: list of numpy arrays
+        """      
         results = []
         for e in evaluations:
             if e is None or isinstance(e, ErroredEvaluation):
@@ -30,6 +53,24 @@ class Optimizer(ABC):
         return results
 
     def getJacobiMatrix(self, point, evaluator, target, result):
+        """Calculates the jacobi matrix in parallel using finite differencing.
+        To do so, a number of jobs equal to the number of parameters will
+        be passed to the given evaluator.
+        As approximation the finite differencing with epsilon set via the 
+        class constructor will be used.
+
+        :param point: The point in parameter space to calculate the jacobi matrix at
+        :type point: numpy array
+        :param evaluator: the evaluator to use
+        :type evaluator: Evaluator
+        :param target: the target of the calibration, needed only
+         to convert all evaluations to the correct format
+        :type target: Evaluation
+        :param result: The result object to log to
+        :type result:  Result
+        :return: the jacobi matrix, and the evaluation at 'point'
+        :rtype: tuple (numpy array, Evaluation)
+        """
         jacobi = []
 
         neededevaluations = []
@@ -111,5 +152,16 @@ class Optimizer(ABC):
     
     @abstractmethod
     def run(self, evaluator, initial_parameters, target, result = Result()):
+        """Runs this optimizer.
+
+        :param evaluator: the evaluator to use for each Evaluation needed
+        :type evaluator: Evaluator
+        :param initial_parameters: The initial parameters to start the optimization from
+        :type initial_parameters: numpy array
+        :param target: The target of the calibration
+        :type target: Evaluation
+        :param result: Results object to write metadata and iterations to, defaults to Result()
+        :type result: Result, optional
+        """
         pass
 

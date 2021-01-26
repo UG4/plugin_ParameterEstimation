@@ -66,6 +66,48 @@ class GenericEvaluationTests(unittest.TestCase):
             }            
             """)
 
+        with open("4_measurement.json", "w") as f:
+            f.write("""
+            {
+                "data": [
+                    {
+                        "time": 1.5,
+                        "value": 1.5
+                    },
+                    {
+                        "time": 2.5,
+                        "value": 2.5
+                    },
+                    {
+                        "time": 3.5,
+                        "value": 1.5
+                    },
+                    {
+                        "time": 4,
+                        "value": 1
+                    }
+                ]
+            }            
+            """)
+
+        
+        with open("2_measurement.csv", "w") as f:
+            f.write(
+            "step,time,value\n"
+            "1,0.5,3\n"
+            "2,1,2.4\n"
+            "3,2,4.623\n"
+            "FINISHED,,"           
+            )
+
+        with open("3_measurement.csv", "w") as f:
+            f.write(
+            "step,time,value\n"
+            "1,0.5,3\n"
+            "2,1,2.4\n"
+            "3,2,4.623\n"           
+            )
+
         self.series0 = GenericEvaluation.parse(".", 0)
         self.series1 = GenericEvaluation.parse(".", 1)
 
@@ -79,12 +121,41 @@ class GenericEvaluationTests(unittest.TestCase):
 
         os.remove("0_measurement.json")
         os.remove("1_measurement.json")
+        os.remove("2_measurement.csv")
+        os.remove("3_measurement.csv")
+        os.remove("4_measurement.json")
 
     def test_read_in(self):
+
+        self.assertFalse(isinstance(self.series0, ErroredEvaluation))
+        self.assertFalse(isinstance(self.series1, ErroredEvaluation))
+
         self.assertEqual(self.series0.times, [1, 2, 3, 4, 5])
         self.assertEqual(self.series1.times, [1.5, 2.5, 3.5, 4])
         self.assertEqual(self.series0.data, [1, 2, 2, 1, 0])
         self.assertEqual(self.series1.data, [1.5, 2.5, 1.5, 1])
+
+    def test_parse_csv(self):
+
+        self.series2 = GenericEvaluation.parse(".", 2)
+
+        if isinstance(self.series2, ErroredEvaluation):
+            print(self.series2.reason)
+
+        self.assertFalse(isinstance(self.series2, ErroredEvaluation))
+
+        self.assertEqual(self.series2.times, [0.5, 1, 2])
+        self.assertEqual(self.series2.data, [3, 2.4, 4.623])
+
+    def test_error_on_not_finished(self):
+
+        self.series3 = GenericEvaluation.parse(".", 3)
+        self.assertTrue(isinstance(self.series3, ErroredEvaluation))
+
+    def test_error_on_malformed(self):
+
+        self.series4 = GenericEvaluation.parse(".", 4)
+        self.assertTrue(isinstance(self.series4, ErroredEvaluation))
 
     def test_numpy_array(self):
         self.assertTrue(np.allclose(

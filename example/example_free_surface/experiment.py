@@ -24,7 +24,7 @@ evaluator = Evaluator.ConstructEvaluator(
     parametermanager=pm,                # the parameters defined above
     evaluation_type=FreeSurfaceTimeDependentEvaluation,         # the type the evaluations should be parsed as.
     parameter_output_adapter=UG4ParameterOutputAdapter(),       # the adapter to use to write the parameters
-    parallelism=1)                      # threads to use locally or jobs to submit in parallel when using UGSUBMIT
+    threadcount=10)                     # threads to use locally or in ugsubmit when using UGSUBMIT
 
 # create the optimizer
 optimizer = GaussNewtonOptimizer(LinearParallelLineSearch(evaluator))

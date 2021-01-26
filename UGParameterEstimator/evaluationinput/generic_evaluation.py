@@ -2,13 +2,14 @@ from .evaluation import Evaluation, ErroredEvaluation
 import numpy as np
 import math
 import os
+import csv
 import json
 
 class GenericEvaluation(Evaluation):
     """Class implementing a parser for evaluations containing only one
     scalar value at multiple timesteps, stored in the following json format:
 
-    .. code-block:: json
+    .. code-block:: none
 
         {
             "metadata": {
@@ -26,6 +27,16 @@ class GenericEvaluation(Evaluation):
                 ....
             ]
         }
+
+    or this CSV format:
+
+    .. code-block:: none
+
+        step,time,value
+        1,0.1,0.35
+        2,0.2,0.34
+        ...
+        FINISHED,,
 
     """
 
@@ -128,6 +139,45 @@ class GenericEvaluation(Evaluation):
         return array
     
     @classmethod
+    def fromCSV(cls, filename,  evaluation_id=-1, parameters=None, runtime=None):
+        """Parses this evaluation from the csv format described
+
+        :param filename: file to parse
+        :type filename: string
+        :param evaluation_id: id of the evaluation this data resulted from
+        :type evaluation_id: int, optional
+        :param parameters: (transformed) parameters of the evaluation this data resulted from
+        :type parameters: numpy array, optional
+        :param runtime: runtime of the evaluation this data resulted from, in seconds
+        :type runtime: int, optional
+        :return: the parsed evaluation, or ErroredEvaluation if an error occurred.
+        :rtype: Evaluation
+        """
+
+        parsedevaluation = cls([], [], evaluation_id, parameters, runtime)
+
+        with open(filename) as csvfile:
+            reader = csv.DictReader(csvfile)
+
+            isfinished = False
+            for row in reader:
+
+                if "step" not in row or "value" not in row or "time" not in row:                    
+                    return ErroredEvaluation(parameters, "Malformed data entry!", evaluation_id, runtime)
+
+                if row["step"] == "FINISHED":
+                    isfinished = True
+                    break
+
+                parsedevaluation.data.append(float(row["value"]))
+                parsedevaluation.times.append(float(row["time"]))
+
+        if isfinished:
+            return parsedevaluation
+        else:
+            return ErroredEvaluation(parameters, "Evaluation did not finish correctly", evaluation_id, runtime)
+    
+    @classmethod
     def fromJSON(cls, filename,  evaluation_id=-1, parameters=None, runtime=None):
         """Parses this evaluation from the json format described
 
@@ -191,10 +241,12 @@ class GenericEvaluation(Evaluation):
 
         # construct filename
         filenameJson = os.path.join(directory, str(evaluation_id) + "_measurement.json")
+        filenameCSV = os.path.join(directory, str(evaluation_id) + "_measurement.csv")
 
-        if not os.path.isfile(filenameJson):
-            return ErroredEvaluation(parameters, "No measurement file found.", evaluation_id, runtime)
-        
-        return GenericEvaluation.fromJSON(filenameJson, evaluation_id, parameters, runtime)
+        if not os.path.isfile(filenameCSV):
+            if not os.path.isfile(filenameJson):
+                return ErroredEvaluation(parameters, "No measurement file found.", evaluation_id, runtime)        
+            return GenericEvaluation.fromJSON(filenameJson, evaluation_id, parameters, runtime)
+        return GenericEvaluation.fromCSV(filenameCSV, evaluation_id, parameters, runtime)
 
         
