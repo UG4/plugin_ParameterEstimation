@@ -1,6 +1,7 @@
 import subprocess
 import numpy as np
 import os
+import os.path
 import time
 from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter, ErroredEvaluation
 from .evaluator import Evaluator
@@ -94,10 +95,20 @@ class LocalEvaluator(Evaluator):
                 
             starttime = time.time()
 
+            absolute_directory_path = os.getcwd() + "/" + self.directory
+            absolute_script_path = os.getcwd() + "/" + self.luafile
+
+            if not os.path.isfile(absolute_script_path):
+                print("Luafile not found! " + absolute_script_path)
+                exit()
+            if not os.path.exists(absolute_directory_path):
+                print("Exchange directory not found! " + absolute_directory_path)
+                exit()
+
             if(self.threadcount > 1):
-                callParameters = ["mpirun","-n",str(self.threadcount),"ugshell","-ex",self.luafile, "-evaluationId",str(self.id),"-communicationDir",self.directory]
+                callParameters = ["mpirun","-n",str(self.threadcount),"ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
             else:
-                callParameters = ["ugshell","-ex",self.luafile, "-evaluationId",str(self.id),"-communicationDir",self.directory]
+                callParameters = ["ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
 
             callParameters += self.cliparameters
 

@@ -142,7 +142,7 @@ class FreeSurfaceEquilibriumEvaluation(FreeSurfaceEvaluation):
         self.times = [time]
 
     @classmethod
-    def fromCSV(cls, filename, dim, valuecolumn="Value", dimcolumns=["X", "Y"]):            
+    def fromCSV(cls, filename, dim, delimiter=',', valuecolumn="Value", dimcolumns=["X", "Y"]):            
         """ Reads the free surface evaluation from a .csv file.
 
         :param filename: filename to load
@@ -157,7 +157,7 @@ class FreeSurfaceEquilibriumEvaluation(FreeSurfaceEvaluation):
         data = [[]]
         locations = []
         with open(filename) as csvfile:
-            reader = csv.DictReader(csvfile)
+            reader = csv.DictReader(csvfile, delimiter=delimiter)
             for row in reader:
                 value = float(row[valuecolumn])
                 if math.isnan(value) and FreeSurfaceEquilibriumEvaluation.nanhandling == FreeSurfaceEvaluation.NaNHandling.replace:

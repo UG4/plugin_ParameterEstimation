@@ -110,6 +110,13 @@ class ClusterEvaluator(Evaluator):
             absolute_directory_path = os.getcwd() + "/" + self.directory
             absolute_script_path = os.getcwd() + "/" + self.luafilename
 
+            if not os.path.isfile(absolute_script_path):
+                print("Luafile not found! " + absolute_script_path)
+                exit()
+            if not os.path.exists(absolute_directory_path):
+                print("Exchange directory not found! " + absolute_directory_path)
+                exit()
+
             callParameters = ["ugsubmit",str(self.threadcount),"---","ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
 
             callParameters += self.cliparameters

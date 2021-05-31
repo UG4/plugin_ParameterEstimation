@@ -42,7 +42,7 @@ alpha={
 }
 
 dom = util.CreateDomain("Room_Door.ugx", 0, {"Inner", "Wall", "Door"})
-util.refinement.CreateRegularHierarchy(dom, 3, true)
+util.refinement.CreateRegularHierarchy(dom, 5, true)
 
 local approxSpaceDesc = { fct = "temp", type = "Lagrange", order = 1 }
 approxSpace = ApproximationSpace(dom)

@@ -30,7 +30,7 @@ evaluator = Evaluator.ConstructEvaluator(
 optimizer = GaussNewtonOptimizer(LinearParallelLineSearch(evaluator))
 
 # specify some fixed parameters if needed (could be done in lua, also)
-evaluator.fixedparameters["inflow"] = 0.0001
+evaluator.fixedparameters["inflow"] = 0.001
 evaluator.fixedparameters["stoptime"] = 10
 
 # this will do a measurement with fixed parameters
