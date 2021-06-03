@@ -1,7 +1,6 @@
 from .optimizer import Optimizer
 from UGParameterEstimator import LineSearch, Result
 import numpy as np
-from scipy import stats
 
 class GradientDescentOptimizer(Optimizer):
         
