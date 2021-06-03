@@ -5,12 +5,11 @@ from scipy import stats
 
 class GaussNewtonOptimizer(Optimizer):
         
-    def __init__(self, linesearchmethod: LineSearch, maxiterations = 15, epsilon=1e-3, minreduction=1e-4,max_error_ratio=(0.05,0.95), differencing=Optimizer.Differencing.forward):
+    def __init__(self, linesearchmethod: LineSearch, maxiterations = 15, epsilon=1e-3, minreduction=1e-4, differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
         self.linesearchmethod = linesearchmethod
         self.maxiterations = maxiterations
         self.minreduction = minreduction
-        self.max_error_ratio = max_error_ratio
 
     def run(self, evaluator, initial_parameters, target, result = Result()):
 
@@ -99,15 +98,9 @@ class GaussNewtonOptimizer(Optimizer):
             errors = s*np.linalg.norm(R1inv, axis=1)
             result.addMetric("errors", errors)
 
-            if self.max_error_ratio is not None:
-                # calculate confidence interval using the errors
-                confidenceinterval = stats.t.ppf((1+self.max_error_ratio[1])/2, dof)*errors
-                result.addMetric("confidenceinterval", confidenceinterval)
-
-
             # cancel the optimization when the reduction of the norm of the residuals is below the threshhold and 
             # the confidence of the calibrated parameters is sufficiently low
-            if(S/first_S < self.minreduction and (self.max_error_ratio is None or np.max(np.divide(confidenceinterval, guess)) < self.max_error_ratio[0])):
+            if(S/first_S < self.minreduction):
                 result.log("-- Newton method converged. --")
                 result.commitIteration()
                 break
