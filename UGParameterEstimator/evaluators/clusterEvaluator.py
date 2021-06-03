@@ -19,7 +19,7 @@ class ClusterEvaluator(Evaluator):
     Output of UG4 is redirected into a separate <id>_ug_output.txt file.
 
     """
-    def __init__(self, luafilename, directory, parametermanager: ParameterManager, evaluation_type, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, threadcount=10, cliparameters = []):
+    def __init__(self, luafilename, directory, parametermanager: ParameterManager, evaluation_type, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, threadcount=10, cliparameters = [], ugsubmitparameters=[]):
         """Class constructor
 
         :param luafilename: path to the luafile to call for every evaluation
@@ -51,6 +51,7 @@ class ClusterEvaluator(Evaluator):
         self.jobids = []
         self.luafilename = luafilename
         self.cliparameters = cliparameters
+        self.ugsubmitparameters = ugsubmitparameters
         
         if not os.path.exists(self.directory):
             os.mkdir(self.directory)
@@ -117,7 +118,11 @@ class ClusterEvaluator(Evaluator):
                 print("Exchange directory not found! " + absolute_directory_path)
                 exit()
 
-            callParameters = ["ugsubmit",str(self.threadcount),"---","ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
+            callParameters = ["ugsubmit",str(self.threadcount)]
+
+            callParameters += self.ugsubmitparameters
+            
+            callParameters += ["---","ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
 
             callParameters += self.cliparameters
 
