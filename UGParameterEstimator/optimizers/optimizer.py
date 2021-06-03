@@ -2,7 +2,6 @@
 
 import subprocess
 import numpy as np
-import scipy.optimize
 import os
 import time
 from enum import Enum
