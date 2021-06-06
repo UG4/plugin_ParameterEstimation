@@ -81,9 +81,12 @@ class FreeSurfaceEvaluation(Evaluation):
             for l in range(A.locationCount):
                 if A.dimension == 2:
                     if math.fabs(B.locations[l]-A.locations[l]) > 0.001:
+                        print("At location " + str(l)+ ": target: " + str(B.locations[l]) +", measurement: " + str(A.locations[l]) )
                         return False                        
                 else:
                     if math.fabs(B.locations[l][0]-A.locations[l][0]) > 0.001 or math.fabs(B.locations[l][1]-A.locations[l][1]) > 0.001:
+                        print("At location " + str(l) + ": ")
+                        print("target: " + str(B.locations[l]) + ", measurement: " + str(A.lcations[l]))
                         return False                    
 
         return True  
@@ -496,8 +499,6 @@ class FreeSurfaceTimeDependentEvaluation(FreeSurfaceEvaluation):
             raise Evaluation.IncompatibleFormatError("Target not compatible!")
 
         if not FreeSurfaceTimeDependentEvaluation.hasSameLocations(self, target):
-            print("Target: " + str(target.locations))
-            print("this: " + str(self.locations))
             raise Evaluation.IncompatibleFormatError("Not the same locations!")
 
         if isinstance(target, FreeSurfaceEquilibriumEvaluation):
