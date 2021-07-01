@@ -1,4 +1,3 @@
-from plugins.ParameterEstimation.UGParameterEstimator.evaluators.schedulingAdapter import SchedulingAdapter
 import subprocess
 import os
 import io
@@ -7,6 +6,7 @@ import csv
 from shutil import copyfile
 from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter, ErroredEvaluation
 from .evaluator import Evaluator
+from .schedulingAdapter import SchedulingAdapter
 from .ugsubmitSlurmSchedulingAdapter import UGSubmitSlurmSchedulingAdapter
 
 class ClusterEvaluator(Evaluator):
