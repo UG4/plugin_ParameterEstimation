@@ -1,3 +1,4 @@
+from plugins.ParameterEstimation.UGParameterEstimator.evaluators.schedulingAdapter import SchedulingAdapter
 import subprocess
 import os
 import io
@@ -6,6 +7,7 @@ import csv
 from shutil import copyfile
 from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter, ErroredEvaluation
 from .evaluator import Evaluator
+from .ugsubmitSlurmSchedulingAdapter import UGSubmitSlurmSchedulingAdapter
 
 class ClusterEvaluator(Evaluator):
     """Evaluator for Clusters supporting UGSUBMIT.
@@ -19,7 +21,7 @@ class ClusterEvaluator(Evaluator):
     Output of UG4 is redirected into a separate <id>_ug_output.txt file.
 
     """
-    def __init__(self, luafilename, directory, parametermanager: ParameterManager, evaluation_type, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, threadcount=10, cliparameters = [], ugsubmitparameters=[]):
+    def __init__(self, luafilename, directory, parametermanager: ParameterManager, evaluation_type, parameter_output_adapter: ParameterOutputAdapter, scheduling_adapter: SchedulingAdapter, fixedparameters={}, cliparameters = []):
         """Class constructor
 
         :param luafilename: path to the luafile to call for every evaluation
@@ -32,6 +34,8 @@ class ClusterEvaluator(Evaluator):
         :type evaluation_type: type implementing Evaluation
         :param parameter_output_adapter: output adapter to write the parameters
         :type parameter_output_adapter: ParameterOutputAdapter
+        :param scheduling_adapter: scheduling adapter to allow for usage on multiple different job scheduling systems
+        :type scheduling_adapter: SchedulingAdapter
         :param fixedparameters: optional dictionary of fixed parameters to pass
         :type fixedparameters: dictionary<string, string|number>, optional
         :param threadcount: optional maximum number of threads per job in UGSUBMIT, defaults to 10
@@ -39,6 +43,7 @@ class ClusterEvaluator(Evaluator):
         :param cliparameters: list of command line parameters to append to subprocess call. use separate entries
                 for places that would normally require a space.
         :type cliparameters: list of strings, optional
+
         """
         self.directory = directory
         self.parametermanager = parametermanager
@@ -47,11 +52,11 @@ class ClusterEvaluator(Evaluator):
         self.fixedparameters.update(fixedparameters)
         self.evaluation_type = evaluation_type
         self.parameter_output_adapter = parameter_output_adapter
-        self.threadcount = threadcount
+        
         self.jobids = []
         self.luafilename = luafilename
         self.cliparameters = cliparameters
-        self.ugsubmitparameters = ugsubmitparameters
+        self.scheduling_adapter = scheduling_adapter
         
         if not os.path.exists(self.directory):
             os.mkdir(self.directory)
@@ -117,58 +122,22 @@ class ClusterEvaluator(Evaluator):
             if not os.path.exists(absolute_directory_path):
                 print("Exchange directory not found! " + absolute_directory_path)
                 exit()
-
-            callParameters = ["ugsubmit",str(self.threadcount)]
-
-            callParameters += self.ugsubmitparameters
             
-            callParameters += ["---","ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
+            parameters = ["-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
+            parameters += self.cliparameters
 
-            callParameters += self.cliparameters
-
-            evaluationids[j] = self.id
+            evaluationids[j] = self.id 
+            self.id += 1 
 
             # output the parameters however needed for the application
             self.parameter_output_adapter.writeParameters(self.directory, self.id, self.parametermanager, beta[j], self.fixedparameters)
-            
-            self.id += 1
-
-            # submit the job and parse the received id
-            process = subprocess.Popen(callParameters, stdout=subprocess.PIPE)
-            process.wait()
-
-            for line in io.TextIOWrapper(process.stdout, encoding="UTF-8"):
-                if line.startswith("Received job id"):
-                    self.jobids[j] = int(line.split(" ")[3])
-
-            # to avoid bugs with the used scheduler on cesari
-            time.sleep(1)
+            self.jobids[j] = self.schedulingAdapter.scheduleJob()         
 
         while(True):
 
-            # wait until all jobs are finished
-            # for this, call uginfo and parse the output
-            process = subprocess.Popen(["uginfo"], stdout=subprocess.PIPE)
-            process.wait()
-            lines = io.TextIOWrapper(process.stdout, encoding="UTF-8").readlines()
-            while True:
-                if "JOBID" not in lines[0]:
-                    lines.remove(lines[0])
-                else:
-                    break
-            
-            reader = csv.DictReader(lines, delimiter=" ", skipinitialspace=True)
+            jobs_running_or_pending = self.scheduling_adapter.anyStillPendingOrRunning(self.jobids)
 
-            # are all of our jobs finished?
-            finished = True
-
-            for row in reader:
-                jobid = int(row["JOBID"])
-                if((jobid in self.jobids) and (row["STATE"] == "RUNNING" or row["STATE"] == "PENDING")):
-                    finished = False
-                    break
-
-            if finished:
+            if not jobs_running_or_pending:
                 break
 
             time.sleep(5)
@@ -186,7 +155,10 @@ class ClusterEvaluator(Evaluator):
             # preserve the association between the ugoutput and th einternal avaluation id.
             # this allows for better debugging
             stdoutfile = os.path.join(self.directory, str(evaluationids[i]) + "_ug_output.txt")
-            copyfile("jobid." + str(self.jobids[i]) + "/job.output", stdoutfile)
+            try:
+                copyfile("jobid." + str(self.jobids[i]) + "/job.output", stdoutfile)
+            except:
+                print("Could not copy job output. Was it moved?")
 
             results[i] = data
 
@@ -202,26 +174,7 @@ class ClusterEvaluator(Evaluator):
 
         # make sure all (of our) jobs are cancelled or finished when the evaluation is finished
 
-        if(not self.jobids):
+        if not self.jobids:
             return None
 
-        # call uginfo to find out which jobs are still running
-        process = subprocess.Popen(["uginfo"], stdout=subprocess.PIPE)
-        process.wait()
-        lines = io.TextIOWrapper(process.stdout,encoding="UTF-8").readlines()
-        while True:
-            if "JOBID" not in lines[0]:
-                lines.remove(lines[0])
-            else:
-                break
-        
-        reader = csv.DictReader(lines, delimiter=" ", skipinitialspace=True)
-
-        for row in reader:
-            jobid = int(row["JOBID"])
-            if jobid in self.jobids:
-                print("Cancelling " + str(jobid))
-
-                # cancel them using ugcancel
-                process2 = subprocess.Popen(["ugcancel",str(jobid)], stdout=subprocess.PIPE)
-                process2.wait()
+        self.scheduling_adapter.cancelJobs(self.jobids)

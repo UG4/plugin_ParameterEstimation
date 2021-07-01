@@ -112,34 +112,6 @@ class Evaluator(ABC):
         string += self.getStatistics()
         return string
 
-    @classmethod
-    def ConstructEvaluator(self,luafile, directory, parametermanager: ParameterManager, evaluation_type: Evaluation, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, threadcount=10, cliparameters=[]):
-        """Factory method to construct a suitable evaluator.
+    class IncompatibleFormatError(Exception):
+        pass
 
-        If UGSUBMIT can be detected on the system, a ClusterEvaluator will be used, if not, a LocalEvaluator.
-
-        :param luafilename: path to the luafile to call for every evaluation
-        :type luafilename: string
-        :param directory: directory to use for exchanging data with UG4
-        :type directory: string
-        :param parametermanager: ParameterManager to transform the parameters/get parameter information
-        :type parametermanager: ParameterManager
-        :param evaluation_type: TYPE the evaluation shoould be parsed as.
-        :type evaluation_type: type implementing Evaluation
-        :param parameter_output_adapter: output adapter to write the parameters
-        :type parameter_output_adapter: ParameterOutputAdapter
-        :param fixedparameters: optional dictionary of fixed parameters to pass
-        :type fixedparameters: dictionary<string, string|number>, optional
-        :param jobcount: optional maximum number of parallel jobs to submit in UGSUBMIT, defaults to 10
-        :type jobcount: int, optional
-        :param cliparameters: list of command line parameters to append to subprocess call. use separate entries
-                for places that would normally require a space.
-        :type cliparameters: list of strings, optional
-        """
-        import UGParameterEstimator
-        if "UGSUBMIT_TYPE" in os.environ:
-            print("Detected cluster " + os.environ["UGSUBMIT_TYPE"] + ", using ClusterEvaluator")
-            return UGParameterEstimator.ClusterEvaluator(luafile, directory, parametermanager, evaluation_type, parameter_output_adapter, fixedparameters, threadcount, cliparameters)
-        else:
-            print("No cluster detected, using LocalEvaluator")
-            return UGParameterEstimator.LocalEvaluator(luafile, directory, parametermanager, evaluation_type, parameter_output_adapter, fixedparameters, threadcount, cliparameters)

@@ -63,7 +63,7 @@ class FreeSurfaceEvaluation(Evaluation):
         :rtype: numpy array with size totalCount
         """
         return np.reshape(np.array(self.data),-1)
-    
+
     @staticmethod
     def hasSameLocations(A, B):
         """Compares the locations of 2 free surface measurement objects

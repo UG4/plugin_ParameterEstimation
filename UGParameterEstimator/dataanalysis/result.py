@@ -384,6 +384,36 @@ class Result:
                 partial_series = FreeSurfaceEquilibriumEvaluation.fromNumpyArray(partial, self.metadata["target"])
                 FreeSurfaceEquilibriumEvaluation.writePlots({"Sensitivität":{"eval":partial_series}}, filename + "-" + pm.parameters[i].name.replace("_","-") + ".tex", zlabel(i))
 
+    def plotCalibrationSuccess(self, filename, targetheightlabel="target", actualheightlabel="actualheight"):
+        target = self.metadata["target"]
+        result = self.iterations[self.iterationCount-1]["measurementEvaluation"]
+        start = self.iterations[0]["measurementEvaluation"]
+
+        result = result.getNumpyArrayLike(target)
+        start = start.getNumpyArrayLike(target)
+
+        with open(filename,"w") as f:
+            f.write("\\begin{center}\n")
+            f.write("\t\\begin{tikzpicture}[scale=0.8]\n")
+            f.write("	\\begin{axis}[\n")
+            f.write("	xlabel=" + targetheightlabel + ",\n")
+            f.write("	ylabel=" + actualheightlabel + ",\n")
+            f.write("   \\addplot[scatter,only marks] table {")
+            f.write("   };")
+            f.write("	\\end{axis}\n")
+            f.write("	\\end{tikzpicture}\n")
+            f.write("   \\begin{tikzpicture}[scale=0.8]\n")
+            f.write("   \\begin{axis}[\n")
+            f.write("	xlabel=" + targetheightlabel + ",\n")
+            f.write("	ylabel=" + actualheightlabel + ",\n")
+            f.write("   legend style={\n")
+            f.write("   	at={(0,0)},\n")
+            f.write("   	anchor=north,at={(axis description cs:0.5,-0.18)}} ]\n")
+            f.write("   \\addplot [thick] table [x={location}, y={value}] {"+filename + "-" + pm.parameters[i].name + "-over-time.csv};\n")
+            f.write("   \\end{axis}\n")
+            f.write("   \\end{tikzpicture}\n")
+            f.write("\\end{center}")
+
     def plotComparison(self, filename, force2d=False):                    
         """Saves a latex document plotting a comparison between target data, the evealuation using the initial parameters and the evaluation 
         using the calibrated parameters.
