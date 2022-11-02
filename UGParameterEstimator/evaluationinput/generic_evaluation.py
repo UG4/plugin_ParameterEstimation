@@ -5,6 +5,7 @@ import os
 import csv
 import json
 
+
 class GenericEvaluation(Evaluation):
     """Class implementing a parser for evaluations containing only one
     scalar value at multiple timesteps, stored in the following json format:
@@ -56,7 +57,7 @@ class GenericEvaluation(Evaluation):
         :type parameters: numpy array, optional
         :param runtime: runtime of the evaluation this data resulted from, in seconds
         :type runtime: int, optional
-        """ 
+        """
         self.data = data
         self.times = times
         self.eval_id = eval_id
@@ -72,7 +73,7 @@ class GenericEvaluation(Evaluation):
         """
         return len(self.times)
 
-    def getNumpyArray(self):        
+    def getNumpyArray(self):
         """Returns stored measurements as a 1d numpy array
 
         :return: stored measurements as a 1d numpy array
@@ -80,7 +81,6 @@ class GenericEvaluation(Evaluation):
         """
         return np.array(self.data)
 
-    
     def getNumpyArrayLike(self, target):
         """Used to interpolate between different evaluations, when timestamps might differ because
         of the used time control schemes.
@@ -91,7 +91,7 @@ class GenericEvaluation(Evaluation):
         :return: the data of this evaulation, interpolated to the targets format
         :rtype: numpy array
         """
-        
+
         if not isinstance(target, GenericEvaluation):
             raise Evaluation.IncompatibleFormatError("Target not compatible!")
 
@@ -109,22 +109,22 @@ class GenericEvaluation(Evaluation):
                     array[i] = self.data[nearest_lower]
                     break
 
-                if nearest_lower == self.timeCount-1:
+                if nearest_lower == self.timeCount - 1:
                     # at the edge...
                     array[i] = self.data[nearest_lower]
                     break
 
                 if self.times[nearest_lower] < targettime:
-                    if self.times[nearest_lower+1] > targettime:
+                    if self.times[nearest_lower + 1] > targettime:
                         # found it
                         # interpolate
-                        higherdata = np.array(self.data[nearest_lower+1])
-                        highertime = self.times[nearest_lower+1]
+                        higherdata = np.array(self.data[nearest_lower + 1])
+                        highertime = self.times[nearest_lower + 1]
                         lowerdata = np.array(self.data[nearest_lower])
                         lowertime = self.times[nearest_lower]
 
-                        percentage = ((targettime-lowertime) / (highertime-lowertime))
-                        interpolated = percentage*higherdata + (1-percentage)*lowerdata
+                        percentage = ((targettime - lowertime) / (highertime - lowertime))
+                        interpolated = percentage * higherdata + (1 - percentage) * lowerdata
 
                         array[i] = interpolated
                         break
@@ -135,11 +135,11 @@ class GenericEvaluation(Evaluation):
                 if nearest_lower == 0:
                     array[i] = self.data[nearest_lower]
                     break
-                    
+
         return array
-    
+
     @classmethod
-    def fromCSV(cls, filename,  evaluation_id=-1, parameters=None, runtime=None):
+    def fromCSV(cls, filename, evaluation_id=-1, parameters=None, runtime=None):
         """Parses this evaluation from the csv format described
 
         :param filename: file to parse
@@ -162,7 +162,7 @@ class GenericEvaluation(Evaluation):
             isfinished = False
             for row in reader:
 
-                if "step" not in row or "value" not in row or "time" not in row:                    
+                if "step" not in row or "value" not in row or "time" not in row:
                     return ErroredEvaluation(parameters, "Malformed data entry!", evaluation_id, runtime)
 
                 if row["step"] == "FINISHED":
@@ -176,9 +176,9 @@ class GenericEvaluation(Evaluation):
             return parsedevaluation
         else:
             return ErroredEvaluation(parameters, "Evaluation did not finish correctly", evaluation_id, runtime)
-    
+
     @classmethod
-    def fromJSON(cls, filename,  evaluation_id=-1, parameters=None, runtime=None):
+    def fromJSON(cls, filename, evaluation_id=-1, parameters=None, runtime=None):
         """Parses this evaluation from the json format described
 
         :param filename: file to parse
@@ -199,17 +199,17 @@ class GenericEvaluation(Evaluation):
                 parsedjson = json.load(jsonfile)
             except json.JSONDecodeError as exception:
                 return ErroredEvaluation(parameters, "Error parsing json file: " + exception.msg, evaluation_id, runtime)
-        
+
         # check correct format
-        if("data" not in parsedjson
-            or "metadata" not in parsedjson
-            or "finished" not in parsedjson["metadata"]):
+        if "data" not in parsedjson \
+           or "metadata" not in parsedjson \
+           or "finished" not in parsedjson["metadata"]:
             return ErroredEvaluation(parameters, "Evaluation json is malformed.", evaluation_id, runtime)
 
         # check that the evaluation did finish correctly
         if not parsedjson["metadata"]["finished"]:
             return ErroredEvaluation(parameters, "Evaluation did not finish correctly", evaluation_id, runtime)
-        
+
         parsedevaluation = cls([], [], evaluation_id, parameters, runtime)
 
         # parse data into internal arrays
@@ -220,7 +220,6 @@ class GenericEvaluation(Evaluation):
             parsedevaluation.times.append(element["time"])
 
         return parsedevaluation
-
 
     @classmethod
     def parse(cls, directory, evaluation_id, parameters=None, runtime=None):
@@ -245,8 +244,6 @@ class GenericEvaluation(Evaluation):
 
         if not os.path.isfile(filenameCSV):
             if not os.path.isfile(filenameJson):
-                return ErroredEvaluation(parameters, "No measurement file found.", evaluation_id, runtime)        
+                return ErroredEvaluation(parameters, "No measurement file found.", evaluation_id, runtime)
             return GenericEvaluation.fromJSON(filenameJson, evaluation_id, parameters, runtime)
         return GenericEvaluation.fromCSV(filenameCSV, evaluation_id, parameters, runtime)
-
-        

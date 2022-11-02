@@ -27,14 +27,14 @@ evaluator = Evaluator.ConstructEvaluator(
     threadcount=1)                     # threads to use locally or when using UGSUBMIT
 
 # create the optimizer
-optimizer = GaussNewtonOptimizer(LinearParallelLineSearch(evaluator))
+optimizer = GaussNewtonOptimizer(LogarithmicParallelLineSearch(evaluator))
 
 # specify some fixed parameters if needed (could be done in lua, also)
 evaluator.fixedparameters["alpha_wall"] = 0.994
 
 # this will do a measurement with fixed parameters
 with evaluator:
-    target = evaluator.evaluate([np.array([10, 0.1])], transform=False)[0]
+    target = evaluator.evaluate([np.array([10, 1.0])], transform=False)[0]
 
 # try to restore these parameters by calibration
 # store the calibration process and logging in example.pkl
