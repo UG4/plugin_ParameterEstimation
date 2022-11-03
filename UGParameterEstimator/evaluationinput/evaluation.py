@@ -2,6 +2,7 @@ import numpy as np
 import os
 from abc import ABC, abstractmethod
 
+
 class Evaluation(ABC):
     """Base class for all Evaluation classes.
 
@@ -14,7 +15,7 @@ class Evaluation(ABC):
     runtime = None
 
     @abstractmethod
-    def getNumpyArray(self):        
+    def getNumpyArray(self):
         """Returns stored measurements as a 1d numpy array
 
         :return: stored measurements as a 1d numpy array
@@ -54,9 +55,10 @@ class Evaluation(ABC):
         :rtype: Evaluation
         """
         pass
-    
+
     class IncompatibleFormatError(Exception):
         pass
+
 
 class ErroredEvaluation(Evaluation):
     """An Implementation of Evaluation indicating an error has occurred during Evaluation.
@@ -90,4 +92,3 @@ class ErroredEvaluation(Evaluation):
     @classmethod
     def parse(cls, directory, evaluation_id, parameters, eval_id, runtime):
         pass
-    
