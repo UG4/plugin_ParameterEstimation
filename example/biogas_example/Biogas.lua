@@ -115,10 +115,11 @@ end
 ug4_home			=	ug_get_root_path().."/"
 app_home			=	ug4_home.."apps/biogas_app/"
 common_scripts		= 	app_home.."scripts/"
+optimizer_scripts	= 	ug4_home.."plugins/ParameterEstimation/example/biogas_example/"
 geom_home			= 	app_home.."geometry/"
 
 -----------------------------------------------------------------
 -- Execute main script
 -----------------------------------------------------------------
 print("Start of Biogas-MAIN")
-ug_load_script(common_scripts.."MainOptimizer.lua")
+ug_load_script(optimizer_scripts.."MainOptimizer.lua")
