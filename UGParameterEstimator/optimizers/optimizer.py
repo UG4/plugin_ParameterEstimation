@@ -8,6 +8,7 @@ from enum import Enum
 from UGParameterEstimator import Result, LineSearch, Evaluator, ParameterManager, ErroredEvaluation
 from abc import ABC, abstractmethod
 
+
 class Optimizer(ABC):
     """A base class for all optimizers, defining the interface and common helper methods
     """
@@ -29,7 +30,7 @@ class Optimizer(ABC):
         if epsilon < 0:
             epsilon = np.sqrt(np.finfo(np.float).eps)
 
-    def measurementToNumpyArrayConverter(self, evaluations, target):  
+    def measurementToNumpyArrayConverter(self, evaluations, target):
         """Helper function to convert an array of Evaluation.
         Each evaluation will be converted and interpolated using it's
         getNumpyArrayLike method.
@@ -42,7 +43,7 @@ class Optimizer(ABC):
         :type target: Evaluation
         :return: the results of the covnertions
         :rtype: list of numpy arrays
-        """      
+        """
         results = []
         for e in evaluations:
             if e is None or isinstance(e, ErroredEvaluation):
@@ -55,7 +56,7 @@ class Optimizer(ABC):
         """Calculates the jacobi matrix in parallel using finite differencing.
         To do so, a number of jobs equal to the number of parameters will
         be passed to the given evaluator.
-        As approximation the finite differencing with epsilon set via the 
+        As approximation the finite differencing with epsilon set via the
         class constructor will be used.
 
         :param point: The point in parameter space to calculate the jacobi matrix at
@@ -75,15 +76,15 @@ class Optimizer(ABC):
         neededevaluations = []
         neededevaluations.append(point)
 
-        if(self.differencing == Optimizer.Differencing.forward):
+        if (self.differencing == Optimizer.Differencing.forward):
             for i in range(len(point)):
                 changed = np.copy(point)
                 if changed[i] == 0:
                     changed[i] = self.finite_differencing_epsilon
                 else:
-                    changed[i] *= 1+self.finite_differencing_epsilon
+                    changed[i] *= 1 + self.finite_differencing_epsilon
                 neededevaluations.append(changed)
-        elif(self.differencing == Optimizer.Differencing.pure_forward):
+        elif (self.differencing == Optimizer.Differencing.pure_forward):
             for i in range(len(point)):
                 changed = np.copy(point)
                 changed[i] += self.finite_differencing_epsilon
@@ -96,10 +97,10 @@ class Optimizer(ABC):
                     changedPos[i] = self.finite_differencing_epsilon
                     changedNeg[i] = -self.finite_differencing_epsilon
                 else:
-                    changedNeg[i] *= 1-self.finite_differencing_epsilon
-                    changedPos[i] *= 1+self.finite_differencing_epsilon
+                    changedNeg[i] *= 1 - self.finite_differencing_epsilon
+                    changedPos[i] *= 1 + self.finite_differencing_epsilon
                 neededevaluations.append(changedPos)
-                neededevaluations.append(changedNeg)        
+                neededevaluations.append(changedNeg)
         elif (self.differencing == Optimizer.Differencing.pure_central):
             for i in range(len(point)):
                 changedPos = np.copy(point)
@@ -109,11 +110,11 @@ class Optimizer(ABC):
                 neededevaluations.append(changedPos)
                 neededevaluations.append(changedNeg)
 
-        with evaluator:            
+        with evaluator:
             evaluations = evaluator.evaluate(neededevaluations, True, "jacobi-matrix")
 
         result.log("jacobi matrix calculated. evaluations:")
-        
+
         for ev in evaluations:
             if isinstance(ev, ErroredEvaluation):
                 result.log("\tid=" + str(ev.eval_id) + ", " + str(ev.reason))
@@ -124,33 +125,33 @@ class Optimizer(ABC):
             if isinstance(ev, ErroredEvaluation):
                 # At least one measurement failed
                 return None
-            
+
         # get the numpy arrays for the evaluation results
         results = self.measurementToNumpyArrayConverter(evaluations, target)
         undisturbed = results[0]
 
         # calculate the jacobi matrix
         for i in range(len(point)):
-            if(self.differencing == Optimizer.Differencing.forward):
+            if (self.differencing == Optimizer.Differencing.forward):
                 if point[i] == 0:
-                    column = (results[i+1]-undisturbed)/(self.finite_differencing_epsilon)
-                else:  
-                    column = (results[i+1]-undisturbed)/(self.finite_differencing_epsilon*point[i])
+                    column = (results[i + 1] - undisturbed) / (self.finite_differencing_epsilon)
+                else:
+                    column = (results[i + 1] - undisturbed) / (self.finite_differencing_epsilon * point[i])
             elif (self.differencing == Optimizer.Differencing.pure_forward):
-                column = (results[i+1]-undisturbed)/(self.finite_differencing_epsilon)
+                column = (results[i + 1] - undisturbed) / (self.finite_differencing_epsilon)
             elif (self.differencing == Optimizer.Differencing.central):
                 if point[i] == 0:
-                    column = (results[2*i+1]-results[2*i+2])/(2*self.finite_differencing_epsilon)
+                    column = (results[2 * i + 1] - results[2 * i + 2]) / (2 * self.finite_differencing_epsilon)
                 else:
-                    column = (results[2*i+1]-results[2*i+2])/(2*self.finite_differencing_epsilon*point[i])            
+                    column = (results[2 * i + 1] - results[2 * i + 2]) / (2 * self.finite_differencing_epsilon * point[i])
             elif (self.differencing == Optimizer.Differencing.pure_central):
-                column = (results[2*i+1]-results[2*i+2])/(2*self.finite_differencing_epsilon)
+                column = (results[2 * i + 1] - results[2 * i + 2]) / (2 * self.finite_differencing_epsilon)
             jacobi.append(column)
-        
+
         return (np.array(jacobi).transpose(), evaluations[0])
-    
+
     @abstractmethod
-    def run(self, evaluator, initial_parameters, target, result = Result()):
+    def run(self, evaluator, initial_parameters, target, result=Result()):
         """Runs this optimizer.
 
         :param evaluator: the evaluator to use for each Evaluation needed
@@ -163,4 +164,3 @@ class Optimizer(ABC):
         :type result: Result, optional
         """
         pass
-

@@ -4,6 +4,7 @@ from UGParameterEstimator import ParameterManager, Result, ErroredEvaluation
 import numpy as np
 import skopt
 
+
 class BayesOptimizer(Optimizer):
 
     def __init__(self, parametermanager: ParameterManager, epsilon=1e-4, minreduction=1e-4, max_iterations=20):
@@ -12,9 +13,9 @@ class BayesOptimizer(Optimizer):
         self.minreduction = minreduction
         self.max_iterations = max_iterations
 
-    def run(self, evaluator, initial_parameters, target, result = Result()):
+    def run(self, evaluator, initial_parameters, target, result=Result()):
 
-        evaluator.resultobj = result    
+        evaluator.resultobj = result
 
         result.addRunMetadata("target", target)
         result.addRunMetadata("optimizertype", type(self).__name__)
@@ -30,11 +31,11 @@ class BayesOptimizer(Optimizer):
         for p in self.parametermanager.parameters:
 
             if p.maximumValue is None:
-                print("No maximum value for parameter " + p.name + " provided!") 
+                print("No maximum value for parameter " + p.name + " provided!")
                 exit(1)
-            
+
             if p.minimumValue is None:
-                print("No minimum value for parameter " + p.name + " provided!") 
+                print("No minimum value for parameter " + p.name + " provided!")
                 exit(1)
 
             print(p.name, p.minimumValue, p.maximumValue, p.optimizationSpaceLowerBound, p.optimizationSpaceUpperBound)
@@ -59,8 +60,8 @@ class BayesOptimizer(Optimizer):
             results = self.measurementToNumpyArrayConverter(result_evaluations, target)
 
             for ev in result_evaluations:
-                if ev is None or isinstance(ev, ErroredEvaluation):                    
-                    result.log("got a None-result! UG run did not finish or parameter was out of bounds...")                    
+                if ev is None or isinstance(ev, ErroredEvaluation):
+                    result.log("got a None-result! UG run did not finish or parameter was out of bounds...")
                     result.log(evaluator.getStatistics())
                     return
 
@@ -72,7 +73,7 @@ class BayesOptimizer(Optimizer):
             for i in range(len(results)):
 
                 residual = results[i] - targetdata
-                S = 0.5*residual.dot(residual)
+                S = 0.5 * residual.dot(residual)
 
                 if min_S is None or min_S > S:
                     min_S = S
@@ -83,7 +84,7 @@ class BayesOptimizer(Optimizer):
             print(Y)
 
             bayes_optimizer.tell(needed_evaluations, Y)
-            
+
             result.addMetric("residualnorm", min_S)
             result.addMetric("parameters", needed_evaluations[min_Index])
             result.addMetric("measurement", results[min_Index])
@@ -96,9 +97,8 @@ class BayesOptimizer(Optimizer):
         result.addRunMetadata("skopt-res", skopt.utils.create_result(bayes_optimizer.Xi, bayes_optimizer.yi, space=bayes_optimizer.space, models=bayes_optimizer.models))
         result.save()
 
-        if(iteration == self.max_iterations-1):
+        if (iteration == self.max_iterations - 1):
             result.log("-- Bayesian optimization did not converge. --")
-        
+
         result.log(evaluator.getStatistics())
         return result
-    

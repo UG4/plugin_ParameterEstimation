@@ -3,16 +3,17 @@ from UGParameterEstimator import ParameterManager, Result, ErroredEvaluation
 import numpy as np
 import scipy
 
+
 class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
 
     def __init__(self, parametermanager: ParameterManager, epsilon=1e-3, differencing=Optimizer.Differencing.forward):
         super().__init__(epsilon, differencing)
         self.parametermanager = parametermanager
 
-    def run(self, evaluator, initial_parameters, target, result = Result()):
+    def run(self, evaluator, initial_parameters, target, result=Result()):
 
         guess = initial_parameters
-        
+
         evaluator.setResultObject(result)
 
         result.addRunMetadata("target", target)
@@ -26,22 +27,20 @@ class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
 
         targetdata = target.getNumpyArray()
 
-
         # assemble bounds
-        bounds = ([],[])
+        bounds = ([], [])
 
         for p in self.parametermanager.parameters:
 
             if p.maximumValue is None:
                 bounds[1].append(np.inf)
             else:
-                bounds[1].append(p.optimizationSpaceUpperBound/(1+self.finite_differencing_epsilon))
-            
+                bounds[1].append(p.optimizationSpaceUpperBound / (1 + self.finite_differencing_epsilon))
+
             if p.minimumValue is None:
                 bounds[0].append(-np.inf)
             else:
                 bounds[0].append(p.optimizationSpaceLowerBound)
-
 
         # define the callbacks for scipy
         def scipy_fun(x):
@@ -51,7 +50,7 @@ class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
                 result.log(evaluator.getStatistics())
                 return
 
-            return evaluation.getNumpyArrayLike(target)-targetdata
+            return evaluation.getNumpyArrayLike(target) - targetdata
 
         def jac_fun(x):
             jacobi_result = self.getJacobiMatrix(x, evaluator, target, result)
@@ -73,7 +72,6 @@ class ScipyNonlinearLeastSquaresOptimizer(Optimizer):
 
         return result
 
-    
 
 class ScipyMinimizeOptimizer(Optimizer):
 
@@ -85,7 +83,7 @@ class ScipyMinimizeOptimizer(Optimizer):
         self.callback_root = callback_root
         self.callback_scaling = callback_scaling
 
-    def run(self, evaluator, initial_parameters, target, result = Result()):
+    def run(self, evaluator, initial_parameters, target, result=Result()):
 
         guess = initial_parameters
 
@@ -102,23 +100,21 @@ class ScipyMinimizeOptimizer(Optimizer):
 
         targetdata = target.getNumpyArray()
 
-
         iteration_count = [0]
         last_S = [-1]
-
 
         # assemble bounds
         upper = []
         lower = []
 
         for p in self.parametermanager.parameters:
-            
+
             if p.maximumValue is None:
                 upper.append(np.inf)
             else:
                 # this is needed to still have some space to do the finite differencing for the jacobi matrix
-                upper.append(p.optimizationSpaceUpperBound/(1+self.finite_differencing_epsilon))
-            
+                upper.append(p.optimizationSpaceUpperBound / (1 + self.finite_differencing_epsilon))
+
             if p.minimumValue is None:
                 lower.append(-np.inf)
             else:
@@ -137,28 +133,28 @@ class ScipyMinimizeOptimizer(Optimizer):
                 exit()
 
             measurement = evaluation.getNumpyArrayLike(target)
-            r = measurement-targetdata
-            S = 0.5*r.dot(r)
+            r = measurement - targetdata
+            S = 0.5 * r.dot(r)
 
             result.log("\t cost function is " + str(S))
-            
+
             result.addMetric("parameters", x)
-            result.addMetric("residualnorm",S)
+            result.addMetric("residualnorm", S)
             result.addMetric("measurement", measurement)
             result.addMetric("measurementEvaluation", evaluation)
             result.addMetric("residuals", r)
 
-            if(last_S[0] != -1):
-                result.addMetric("reduction", S/last_S[0])
+            if (last_S[0] != -1):
+                result.addMetric("reduction", S / last_S[0])
 
             last_S[0] = S
 
             # https://stackoverflow.com/a/47443343
 
             if self.callback_root:
-                return self.callback_scaling*np.sqrt(S)
+                return self.callback_scaling * np.sqrt(S)
             else:
-                return self.callback_scaling*S
+                return self.callback_scaling * S
 
         def scipy_jacobi(x):
             result.log("\tEvaluating jacobi matrix at at x=" + str(x))
@@ -173,7 +169,7 @@ class ScipyMinimizeOptimizer(Optimizer):
             result.addMetric("jacobian", V)
             V = V.transpose()
             measurement = measurementEvaluation.getNumpyArrayLike(target)
-            r = (measurement-targetdata)
+            r = (measurement - targetdata)
             grad = V.dot(r)
             return grad
 
@@ -186,8 +182,7 @@ class ScipyMinimizeOptimizer(Optimizer):
             result.commitIteration()
             return False
 
-        scipy_result = scipy.optimize.minimize( fun=scipy_function, x0=guess, jac=scipy_jacobi, 
-                                                bounds=bounds, callback=scipy_callback, method=self.opt_method)
+        scipy_result = scipy.optimize.minimize(fun=scipy_function, x0=guess, jac=scipy_jacobi, bounds=bounds, callback=scipy_callback, method=self.opt_method)
 
         result.log("result is " + str(scipy_result))
 
@@ -195,4 +190,3 @@ class ScipyMinimizeOptimizer(Optimizer):
         result.save()
 
         return result
-
