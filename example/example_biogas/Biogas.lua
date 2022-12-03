@@ -115,7 +115,7 @@ end
 ug4_home			=	ug_get_root_path().."/"
 app_home			=	ug4_home.."apps/biogas_app/"
 common_scripts		= 	app_home.."scripts/"
-optimizer_scripts	= 	ug4_home.."plugins/ParameterEstimation/example/biogas_example/"
+optimizer_scripts	= 	ug4_home.."plugins/ParameterEstimation/example/example_biogas/"
 geom_home			= 	app_home.."geometry/"
 
 -----------------------------------------------------------------
