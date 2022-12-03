@@ -5,7 +5,4 @@ vtk/
 job*
 lastRun
 ugjobs
-open_pkl.py
-*.plt
-*.pal
-*.png
+plot.py
