@@ -1,0 +1,11 @@
+evaluations/
+*.pkl
+*.pkl_log
+vtk/
+job*
+lastRun
+ugjobs
+open_pkl.py
+*.plt
+*.pal
+*.png
