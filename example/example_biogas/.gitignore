@@ -1,7 +1,7 @@
 evaluations/
 *.pkl
 *.pkl_log
-ugjobs
+vtk/
 job*
 lastRun
 ugjobs

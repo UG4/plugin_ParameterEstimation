@@ -7,7 +7,6 @@ from shutil import copyfile
 from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter, ErroredEvaluation
 from .evaluator import Evaluator
 
-
 class ClusterEvaluator(Evaluator):
     """Evaluator for Clusters supporting UGSUBMIT.
 
@@ -20,7 +19,7 @@ class ClusterEvaluator(Evaluator):
     Output of UG4 is redirected into a separate <id>_ug_output.txt file.
 
     """
-    def __init__(self, luafilename, directory, parametermanager: ParameterManager, evaluation_type, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, threadcount=10, cliparameters=[], ugsubmitparameters=[]):
+    def __init__(self, luafilename, directory, parametermanager: ParameterManager, evaluation_type, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, threadcount=10, cliparameters = [], ugsubmitparameters=[]):
         """Class constructor
 
         :param luafilename: path to the luafile to call for every evaluation
@@ -44,7 +43,7 @@ class ClusterEvaluator(Evaluator):
         self.directory = directory
         self.parametermanager = parametermanager
         self.id = 0
-        self.fixedparameters = {"output": 0}
+        self.fixedparameters =  {"output": 0}
         self.fixedparameters.update(fixedparameters)
         self.evaluation_type = evaluation_type
         self.parameter_output_adapter = parameter_output_adapter
@@ -53,16 +52,16 @@ class ClusterEvaluator(Evaluator):
         self.luafilename = luafilename
         self.cliparameters = cliparameters
         self.ugsubmitparameters = ugsubmitparameters
-
+        
         if not os.path.exists(self.directory):
             os.mkdir(self.directory)
 
-        filelist = [f for f in os.listdir(self.directory)]
+        filelist = [ f for f in os.listdir(self.directory)]
         for f in filelist:
             os.remove(os.path.join(self.directory, f))
 
     @property
-    def parallelism(self):
+    def parallelism(self):        
         """Returns the parallelism of the evaluator
 
         :return: parallelism of the evaluator
@@ -104,7 +103,7 @@ class ClusterEvaluator(Evaluator):
 
         for j in range(len(evaluationlist)):
 
-            if results[j] is not None:
+            if results[j] is not None:                
                 continue
 
             starttimes[j] = time.time()
@@ -119,11 +118,11 @@ class ClusterEvaluator(Evaluator):
                 print("Exchange directory not found! " + absolute_directory_path)
                 exit()
 
-            callParameters = ["ugsubmit", str(self.threadcount)]
+            callParameters = ["ugsubmit",str(self.threadcount)]
 
             callParameters += self.ugsubmitparameters
-
-            callParameters += ["---", "ugshell", "-ex", absolute_script_path, "-evaluationId", str(self.id), "-communicationDir", absolute_directory_path]
+            
+            callParameters += ["---","ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
 
             callParameters += self.cliparameters
 
@@ -131,7 +130,7 @@ class ClusterEvaluator(Evaluator):
 
             # output the parameters however needed for the application
             self.parameter_output_adapter.writeParameters(self.directory, self.id, self.parametermanager, beta[j], self.fixedparameters)
-
+            
             self.id += 1
 
             # submit the job and parse the received id
@@ -145,20 +144,19 @@ class ClusterEvaluator(Evaluator):
             # to avoid bugs with the used scheduler on cesari
             time.sleep(1)
 
-        while True:
+        while(True):
 
             # wait until all jobs are finished
             # for this, call uginfo and parse the output
             process = subprocess.Popen(["uginfo"], stdout=subprocess.PIPE)
             process.wait()
             lines = io.TextIOWrapper(process.stdout, encoding="UTF-8").readlines()
-
             while True:
                 if "JOBID" not in lines[0]:
                     lines.remove(lines[0])
                 else:
                     break
-
+            
             reader = csv.DictReader(lines, delimiter=" ", skipinitialspace=True)
 
             # are all of our jobs finished?
@@ -166,7 +164,7 @@ class ClusterEvaluator(Evaluator):
 
             for row in reader:
                 jobid = int(row["JOBID"])
-                if ((jobid in self.jobids) and (row["STATE"] == "RUNNING" or row["STATE"] == "PENDING")):
+                if((jobid in self.jobids) and (row["STATE"] == "RUNNING" or row["STATE"] == "PENDING")):
                     finished = False
                     break
 
@@ -175,6 +173,7 @@ class ClusterEvaluator(Evaluator):
 
             time.sleep(5)
 
+
         # now we can parse the measurement files
         for i in range(len(evaluationlist)):
 
@@ -182,7 +181,7 @@ class ClusterEvaluator(Evaluator):
                 continue
 
             # parse the result
-            data = self.evaluation_type.parse(self.directory, evaluationids[i], beta[i], time.time() - starttimes[i])
+            data = self.evaluation_type.parse(self.directory, evaluationids[i], beta[i], time.time()-starttimes[i])
 
             # preserve the association between the ugoutput and th einternal avaluation id.
             # this allows for better debugging
@@ -203,19 +202,19 @@ class ClusterEvaluator(Evaluator):
 
         # make sure all (of our) jobs are cancelled or finished when the evaluation is finished
 
-        if not self.jobids:
+        if(not self.jobids):
             return None
 
         # call uginfo to find out which jobs are still running
         process = subprocess.Popen(["uginfo"], stdout=subprocess.PIPE)
         process.wait()
-        lines = io.TextIOWrapper(process.stdout, encoding="UTF-8").readlines()
+        lines = io.TextIOWrapper(process.stdout,encoding="UTF-8").readlines()
         while True:
             if "JOBID" not in lines[0]:
                 lines.remove(lines[0])
             else:
                 break
-
+        
         reader = csv.DictReader(lines, delimiter=" ", skipinitialspace=True)
 
         for row in reader:
@@ -224,5 +223,5 @@ class ClusterEvaluator(Evaluator):
                 print("Cancelling " + str(jobid))
 
                 # cancel them using ugcancel
-                process2 = subprocess.Popen(["ugcancel", str(jobid)], stdout=subprocess.PIPE)
+                process2 = subprocess.Popen(["ugcancel",str(jobid)], stdout=subprocess.PIPE)
                 process2.wait()

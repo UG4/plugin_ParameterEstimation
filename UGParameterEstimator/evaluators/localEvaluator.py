@@ -107,7 +107,7 @@ class LocalEvaluator(Evaluator):
                 exit()
 
             if (self.threadcount > 1):
-                callParameters = ["mpirun", "-n", str(self.threadcount), "ugshell", "-ex", absolute_script_path, "-evaluationId", str(self.id), "-communicationDir", absolute_directory_path]
+                callParameters = ["mpirun", "-np", str(self.threadcount), "ugshell", "-ex", absolute_script_path, "-evaluationId", str(self.id), "-communicationDir", absolute_directory_path]
             else:
                 callParameters = ["ugshell", "-ex", absolute_script_path, "-evaluationId", str(self.id), "-communicationDir", absolute_directory_path]
 

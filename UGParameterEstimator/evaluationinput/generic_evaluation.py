@@ -169,6 +169,9 @@ class GenericEvaluation(Evaluation):
                     isfinished = True
                     break
 
+                if row["value"] == "value" or row["time"] == "time":  # ignore header
+                    continue
+
                 parsedevaluation.data.append(float(row["value"]))
                 parsedevaluation.times.append(float(row["time"]))
 
