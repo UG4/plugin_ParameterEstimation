@@ -4,6 +4,7 @@ import os
 from abc import ABC, abstractmethod
 from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter, ErroredEvaluation
 
+
 class Evaluator(ABC):
     """Evaluator abstract base class
 
@@ -20,15 +21,15 @@ class Evaluator(ABC):
 
     @property
     @abstractmethod
-    def parallelism(self):        
+    def parallelism(self):
         """Returns the parallelism of the evaluator
 
         :return: parallelism of the evaluator
-        :rtype:  int
+        :rtype: int
         """
         pass
 
-    @abstractmethod    
+    @abstractmethod
     def evaluate(self, evaluationlist, transform=True, tag=""):
         """Evaluates the parameters given in evaluationlist using UG4, and the adapters set in the constructor.
 
@@ -50,7 +51,7 @@ class Evaluator(ABC):
         :type res: Result
         """
         self.resultobj = res
-    
+
     def handleNewEvaluations(self, evaluations, tag):
         """Updates the internal evaluation cache and writes evaluations
         and new caching statistics to the set result object.
@@ -60,7 +61,7 @@ class Evaluator(ABC):
         :param tag: tag to store the evaluations under in the result object
         :type tag: string
         """
-        self.cache.update(evaluations)       
+        self.cache.update(evaluations)
         self.serial_evaluation_count += 1
         self.total_evaluation_count += len(evaluations)
         if self.resultobj is not None:
@@ -96,24 +97,23 @@ class Evaluator(ABC):
         self.serial_evaluation_count = 0
         self.total_evaluation_count = 0
 
-
-    def getStatistics(self):    
+    def getStatistics(self):
         """returns the internal statistics as a string representation
         :return: string with statistics information
         :rtype: string
-        """    
+        """
         string = "Total count of evaluations: " + str(self.total_evaluation_count) + "\n"
         string += "Taken from cache: " + str(self.cached_evaluation_count) + "\n"
         string += "Serial count: " + str(self.serial_evaluation_count)
         return string
 
     def __str__(self):
-        string = "Currently cached Evaluations " + str(len(self.cache)) + "\n" 
+        string = "Currently cached Evaluations " + str(len(self.cache)) + "\n"
         string += self.getStatistics()
         return string
 
     @classmethod
-    def ConstructEvaluator(self,luafile, directory, parametermanager: ParameterManager, evaluation_type: Evaluation, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, threadcount=10, cliparameters=[]):
+    def ConstructEvaluator(self, luafile, directory, parametermanager: ParameterManager, evaluation_type: Evaluation, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, threadcount=10, cliparameters=[]):
         """Factory method to construct a suitable evaluator.
 
         If UGSUBMIT can be detected on the system, a ClusterEvaluator will be used, if not, a LocalEvaluator.

@@ -1,7 +1,7 @@
-
 import numpy as np
 from enum import Enum
 from abc import ABC, abstractmethod
+
 
 class Parameter:
 
@@ -24,7 +24,7 @@ class Parameter:
     @abstractmethod
     def optimizationSpaceUpperBound(self):
         pass
-    
+
     @property
     @abstractmethod
     def optimizationSpaceLowerBound(self):
@@ -39,12 +39,13 @@ class Parameter:
             return False
 
         if self.minimumValue is not None and self.optimizationSpaceLowerBound > value:
-            
+
             print("Parameter " + self.name + " out of bounds, " + str(value) + " < " + str(self.optimizationSpaceLowerBound))
 
             return False
 
         return True
+
 
 class DirectParameter(Parameter):
 
@@ -67,6 +68,7 @@ class DirectParameter(Parameter):
     def optimizationSpaceLowerBound(self):
         return self.minimumValue
 
+
 class LogParameter(Parameter):
 
     def getTransformedParameter(self, value):
@@ -82,12 +84,12 @@ class LogParameter(Parameter):
 
     @property
     def optimizationSpaceUpperBound(self):
-        
         return np.log(self.maximumValue)
 
     @property
     def optimizationSpaceLowerBound(self):
         return np.log(self.minimumValue)
+
 
 class ScaledParameter(Parameter):
 
@@ -96,7 +98,7 @@ class ScaledParameter(Parameter):
         if not self.isValidOptimizationSpaceParameter(value):
             return None
 
-        return self.startvalue*value
+        return self.startvalue * value
 
     @property
     def initialValue(self):
@@ -104,15 +106,15 @@ class ScaledParameter(Parameter):
 
     @property
     def optimizationSpaceUpperBound(self):
-        return self.maximumValue/self.startvalue
+        return self.maximumValue / self.startvalue
 
     @property
     def optimizationSpaceLowerBound(self):
-        return self.minimumValue/self.startvalue
+        return self.minimumValue / self.startvalue
 
 
 class ParameterManager:
-    
+
     class WrongMappingError(Exception):
         pass
 
@@ -149,5 +151,4 @@ class ParameterManager:
         for i in range(len(self.parameters)):
             if not self.parameters[i].isValidOptimizationSpaceParameter(beta[i]):
                 return False
-        
         return True

@@ -2,8 +2,9 @@
 
 # import from plugins folder
 # please make sure the enivorment variable UG4_ROOT points to your UG4 directory!
-import sys, os
-sys.path.append(os.path.join(os.environ["UG4_ROOT"],"plugins","ParameterEstimation")) 
+import sys
+import os
+sys.path.append(os.path.join(os.environ["UG4_ROOT"], "plugins", "ParameterEstimation")) 
 
 from UGParameterEstimator import *
 
