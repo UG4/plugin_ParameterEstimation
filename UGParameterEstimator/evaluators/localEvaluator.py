@@ -6,7 +6,8 @@ import time
 from UGParameterEstimator import ParameterManager, Evaluation, ParameterOutputAdapter, ErroredEvaluation
 from .evaluator import Evaluator
 
-class LocalEvaluator(Evaluator):    
+
+class LocalEvaluator(Evaluator):
     """Evaluator for usage on PCs without UGSUBMIT.
 
     Implements the Evaluator AbcstractBaseClass.
@@ -14,7 +15,7 @@ class LocalEvaluator(Evaluator):
     Output of UG4 is redirected into a separate <id>_ug_output.txt file.
 
     """
-    def __init__(self,luafile, directory, parametermanager: ParameterManager, evaluation_type: Evaluation, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, threadcount=10, cliparameters = []):
+    def __init__(self, luafile, directory, parametermanager: ParameterManager, evaluation_type: Evaluation, parameter_output_adapter: ParameterOutputAdapter, fixedparameters={}, threadcount=10, cliparameters=[]):
         """Class constructor
 
         :param luafilename: path to the luafile to call for every evaluation
@@ -49,8 +50,8 @@ class LocalEvaluator(Evaluator):
 
         if not os.path.exists(self.directory):
             os.mkdir(self.directory)
-            
-        filelist = [ f for f in os.listdir(self.directory)]
+
+        filelist = [f for f in os.listdir(self.directory)]
         for f in filelist:
             os.remove(os.path.join(self.directory, f))
 
@@ -62,7 +63,7 @@ class LocalEvaluator(Evaluator):
         :rtype:  int
         """
         return 1
-        
+
     def evaluate(self, evaluationlist, transform=True, tag=""):
         """Evaluates the parameters given in evaluationlist using UG4, and the adapters set in the constructor.
 
@@ -74,7 +75,7 @@ class LocalEvaluator(Evaluator):
         :type tag: string
         :return: list of parsed evaluation objects with the type given in the constructor, or ErroredEvaluation
         :rtype: list of Evaluation
-        """        
+        """
         results = []
 
         for beta in evaluationlist:
@@ -92,7 +93,7 @@ class LocalEvaluator(Evaluator):
             if res is not None:
                 results.append(res)
                 continue
-                
+
             starttime = time.time()
 
             absolute_directory_path = os.getcwd() + "/" + self.directory
@@ -105,10 +106,10 @@ class LocalEvaluator(Evaluator):
                 print("Exchange directory not found! " + absolute_directory_path)
                 exit()
 
-            if(self.threadcount > 1):
-                callParameters = ["mpirun","-n",str(self.threadcount),"ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
+            if (self.threadcount > 1):
+                callParameters = ["mpirun", "-np", str(self.threadcount), "ugshell", "-ex", absolute_script_path, "-evaluationId", str(self.id), "-communicationDir", absolute_directory_path]
             else:
-                callParameters = ["ugshell","-ex",absolute_script_path, "-evaluationId",str(self.id),"-communicationDir",absolute_directory_path]
+                callParameters = ["ugshell", "-ex", absolute_script_path, "-evaluationId", str(self.id), "-communicationDir", absolute_directory_path]
 
             callParameters += self.cliparameters
 
@@ -117,27 +118,27 @@ class LocalEvaluator(Evaluator):
 
             # output the parameters however needed for the application
             self.parameter_output_adapter.writeParameters(self.directory, self.id, self.parametermanager, parameters, self.fixedparameters)
-                        
+
             # call!
             with open(stdoutfile, "w") as outfile:
                 subprocess.call(callParameters, stdout=outfile)
 
             # parse the data, using the provided evaluation type
-            data = self.evaluation_type.parse(self.directory, self.id, parameters, time.time()-starttime)
+            data = self.evaluation_type.parse(self.directory, self.id, parameters, time.time() - starttime)
 
             self.id += 1
-        
+
             if data is None:
                 results.append(ErroredEvaluation(parameters, reason="Error while parsing."))
                 continue
 
-            self.totalevaluationtime += time.time()-starttime
+            self.totalevaluationtime += time.time() - starttime
             self.handleNewEvaluations([data], tag)
 
             results.append(data)
 
         return results
-        
+
     def __enter__(self):
         pass
 
